@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EASE Excel 訂單商品系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <style>
+        body {
+            font-family: "Microsoft JhengHei", "Segoe UI", sans-serif;
+            margin: 30px;
+            background-color: #f4f6f9;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+        .header-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 3px solid #2196F3;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 { color: #2c3e50; margin: 0; }
+        .credits { font-size: 14px; color: #7f8c8d; font-style: italic; font-weight: bold; }
+        .info-box {
+            font-size: 14px; color: #555; background: #eef5fc; padding: 12px 18px;
+            border-radius: 6px; margin-bottom: 20px; line-height: 1.6; border-left: 4px solid #2196F3;
+        }
+        .upload-section { background: #fafafa; border: 2px dashed #ccc; padding: 25px 20px; text-align: center; border-radius: 8px; margin-bottom: 15px; }
+        .file-list-container { background: #fff; border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; margin-bottom: 20px; }
+        .file-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; }
+        .file-list { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border: 1px solid #edf2f7; border-radius: 4px; margin-bottom: 6px; font-size: 14px; }
+        
+        .btn { padding: 11px 22px; font-size: 15px; font-weight: bold; cursor: pointer; color: white; border: none; border-radius: 6px; transition: all 0.2s; margin-right: 8px; }
+        .btn-primary { background-color: #2196F3; }
+        .btn-primary:hover { background-color: #1e88e5; }
+        .btn-success { background-color: #4CAF50; }
+        .btn-success:hover { background-color: #45a049; }
+        .btn-danger { background-color: #e74c3c; padding: 6px 12px; font-size: 13px; }
+        .btn-clear-all { background-color: #95a5a6; padding: 6px 14px; font-size: 13px; }
+        .btn:disabled { background-color: #bbb; cursor: not-allowed; }
+        
+        .action-area { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 20px 0; }
+        .progress-container { flex-grow: 1; background-color: #e0e0e0; border-radius: 20px; overflow: hidden; display: none; position: relative; height: 24px; }
+        .progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #8bc34a); }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 13px; font-weight: bold; color: #333; line-height: 24px; }
+        
+        .table-responsive { max-height: 500px; overflow-y: auto; margin-top: 15px; }
+        table { border-collapse: collapse; width: 100%; background-color: #fff; }
+        
+        /* 表格樣式 */
+        .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 12px 10px; font-size: 14px; }
+        .pdf-table th { background-color: #f5f5f5; font-weight: bold; color: #333; text-align: center; }
+        .pdf-table td.left-align { text-align: left; }
+        .pdf-table td.center-align { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-area">
+        <h2>EASE Excel 訂單商品系統</h2>
+        <span class="credits">🍌 核心技術支援：Banana 的「專屬終身無償長工」工程師 🛠️</span>
+    </div>
+    
+    <div class="info-box">
+        <strong>💡 操作流程：</strong><br>
+        1. 點擊下方區塊選擇一個或多個 Excel 檔案。<br>
+        2. 點擊 <strong>「🚀 開始分析統整」</strong> 按鈕，程式將透過進度條依序處理 Products 分頁。<br>
+        3. 處理完畢後即可在網頁下方看見數據預覽，並可點擊下載按鈕匯出結果。
+    </div>
+
+    <div class="upload-section">
+        <input type="file" id="uploadFiles" accept=".xlsx, .xls" multiple />
+    </div>
+
+    <div class="file-list-container" id="fileListContainer" style="display: none;">
+        <div class="file-list-header">
+            <span>排隊等待統整的檔案：</span>
+            <button id="clearAllBtn" class="btn btn-clear-all">🗑️ 清空全部檔案</button>
+        </div>
+        <ul id="fileList" class="file-list"></ul>
+    </div>
+    
+    <div class="action-area">
+        <button id="processBtn" class="btn btn-primary" disabled>🚀 開始分析統整</button>
+        
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0% (0 / 0)</div>
+        </div>
+        
+        <div>
+            <button id="downloadBtn" class="btn btn-success" style="display:none;">📥 下載Excel統整表</button>
+        </div>
+    </div>
+    
+    <div id="previewTitle" style="display: none;"><h3>📊 統整數據預覽</h3></div>
+    <div id="tableContainer" class="table-responsive"></div>
+</div>
+
+<script>
+    let globalSummary = {};
+    let excelRows = [];
+    let excelMerges = [];
+    let fileStorageArray = [];
+
+    const uploadFilesInput = document.getElementById('uploadFiles');
+    const fileListContainer = document.getElementById('fileListContainer');
+    const fileList = document.getElementById('fileList');
+    const clearAllBtn = document.getElementById('clearAllBtn');
+    const processBtn = document.getElementById('processBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressText = document.getElementById('progressText');
+    const tableContainer = document.getElementById('tableContainer');
+    const previewTitle = document.getElementById('previewTitle');
+
+    uploadFilesInput.addEventListener('change', function(e) {
+        const newFiles = e.target.files;
+        if (newFiles.length === 0) return;
+        for (let i = 0; i < newFiles.length; i++) {
+            const isDuplicate = fileStorageArray.some(f => f.name === newFiles[i].name && f.size === newFiles[i].size);
+            if (!isDuplicate) fileStorageArray.push(newFiles[i]);
+        }
+        uploadFilesInput.value = '';
+        updateFileListUI();
+    });
+
+    function updateFileListUI() {
+        fileList.innerHTML = '';
+        if (fileStorageArray.length > 0) {
+            fileListContainer.style.display = 'block';
+            processBtn.disabled = false;
+        } else {
+            fileListContainer.style.display = 'none';
+            processBtn.disabled = true;
+        }
+        downloadBtn.style.display = 'none';
+        previewTitle.style.display = 'none';
+        tableContainer.innerHTML = '';
+        progressContainer.style.display = 'none';
+        progressBar.style.width = '0%';
+
+        fileStorageArray.forEach((file, index) => {
+            const kbSize = (file.size / 1024).toFixed(1);
+            const li = document.createElement('li');
+            li.className = 'file-item';
+            li.innerHTML = `
+                <div class="file-info">📄 <strong>${file.name}</strong> <span class="file-size">(${kbSize} KB)</span></div>
+                <button class="btn btn-danger" onclick="removeSingleFile(${index})">❌ 刪除</button>
+            `;
+            fileList.appendChild(li);
+        });
+    }
+
+    window.removeSingleFile = function(index) {
+        fileStorageArray.splice(index, 1);
+        updateFileListUI();
+    };
+
+    clearAllBtn.onclick = function() { fileStorageArray = []; updateFileListUI(); };
+
+    processBtn.onclick = async function() {
+        if (fileStorageArray.length === 0) return;
+        globalSummary = {}; 
+        processBtn.disabled = true;
+        uploadFilesInput.disabled = true;
+        clearAllBtn.disabled = true;
+        document.querySelectorAll('.file-item .btn-danger').forEach(btn => btn.disabled = true);
+        progressContainer.style.display = 'block';
+
+        const totalFiles = fileStorageArray.length;
+        for (let i = 0; i < totalFiles; i++) {
+            const currentCount = i + 1;
+            const percent = Math.round((i / totalFiles) * 100);
+            progressBar.style.width = percent + '%';
+            progressText.innerText = `${percent}% (正在處理第 ${currentCount} 檔 / 共 ${totalFiles} 檔)`;
+            await readExcelFile(fileStorageArray[i]);
+        }
+        progressBar.style.width = '100%';
+        progressText.innerText = `100% (全數統整完畢！共 ${totalFiles} 個檔案)`;
+        uploadFilesInput.disabled = false;
+        clearAllBtn.disabled = false;
+        generatePreviewAndData();
+    };
+
+    function readExcelFile(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                const targetSheetName = workbook.SheetNames.find(name => name === "Products");
+                if (targetSheetName) {
+                    const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[targetSheetName], { header: 1, defval: '' });
+                    for (let r = 1; r < sheetData.length; r++) {
+                        const row = sheetData[r];
+                        const mainCat = row[60] ? row[60].toString().trim() : '';
+                        const subCat = row[61] ? row[61].toString().trim() : '';
+                        const qty = parseFloat(row[68]) || 0;
+                        if (mainCat !== '' && subCat !== '') {
+                            if (!globalSummary[mainCat]) globalSummary[mainCat] = {};
+                            globalSummary[mainCat][subCat] = (globalSummary[mainCat][subCat] || 0) + qty;
+                        }
+                    }
+                }
+                setTimeout(resolve, 30); 
+            };
+            reader.readAsBinaryString(file);
+        });
+    }
+
+    function generatePreviewAndData() {
+        if (Object.keys(globalSummary).length === 0) {
+            tableContainer.innerHTML = '<span style="color:red; font-weight:bold;">⚠️ 無任何有效數據。</span>';
+            return;
+        }
+
+        // 4 欄位網頁預覽結構 (A:項次, B:主要分類, C:次要分類, D:數量)
+        let html = '<table class="pdf-table"><thead><tr><th>項次</th><th>主要分類</th><th>次要分類</th><th>數量</th></tr></thead><tbody>';
+        
+        excelRows = [['項次', '主要分類', '次要分類', '數量']];
+        excelMerges = [];
+        let currentExcelRowIdx = 1; 
+        let itemIndex = 1; 
+
+        for (let mainCat in globalSummary) {
+            const subCats = globalSummary[mainCat];
+            const subCatKeys = Object.keys(subCats);
+            const rowSpanCount = subCatKeys.length; 
+            let isFirstRow = true;
+            let startRowIdx = currentExcelRowIdx;
+
+            for (let subCat in subCats) {
+                const qty = subCats[subCat];
+                if (isFirstRow) {
+                    html += `<tr>
+                        <td rowspan="${rowSpanCount}" class="center-align" style="vertical-align: middle; font-weight: bold;">${itemIndex}</td>
+                        <td rowspan="${rowSpanCount}" class="left-align" style="vertical-align: middle; font-weight: bold;">${mainCat}</td>
+                        <td class="left-align">${subCat}</td>
+                        <td class="center-align">${qty}</td>
+                    </tr>`;
+                    isFirstRow = false;
+                } else {
+                    html += `<tr>
+                        <td class="left-align">${subCat}</td>
+                        <td class="center-align">${qty}</td>
+                    </tr>`;
+                }
+                excelRows.push([itemIndex, mainCat, subCat, qty]);
+                currentExcelRowIdx++;
+            }
+            // A欄(項次)與B欄(主要分類)同時綁定合併儲存格
+            excelMerges.push({ s: { r: startRowIdx, c: 0 }, e: { r: currentExcelRowIdx - 1, c: 0 } });
+            excelMerges.push({ s: { r: startRowIdx, c: 1 }, e: { r: currentExcelRowIdx - 1, c: 1 } });
+            itemIndex++;
+        }
+        html += '</tbody></table>';
+        
+        tableContainer.innerHTML = html;
+        previewTitle.style.display = 'block';
+        downloadBtn.style.display = 'inline-block';
+    }
+
+    // 📥 下載 Excel 統整表
+    downloadBtn.onclick = function() {
+        const wb = XLSX.utils.book_new(); 
+        const ws = XLSX.utils.aoa_to_sheet(excelRows);
+        const borderStyle = { top: {style:"thin"}, bottom: {style:"thin"}, left: {style:"thin"}, right: {style:"thin"} };
+        const cellMap = {};
+        
+        for (let ref in ws) {
+            if (ref[0] === '!') continue;
+            const colLetter = ref.replace(/[0-9]/g, ''); const rowNum = parseInt(ref.replace(/[^0-9]/g, ''), 10);
+            const cIdx = colLetter.charCodeAt(0) - 65; const rIdx = rowNum - 1;
+            if (!cellMap[rIdx]) cellMap[rIdx] = {}; cellMap[rIdx][cIdx] = ws[ref];
+        }
+        
+        for (let ref in ws) {
+            if (ref[0] === '!') continue; const cell = ws[ref];
+            const colLetter = ref.replace(/[0-9]/g, ''); const rowNum = parseInt(ref.replace(/[^0-9]/g, ''), 10);
+            cell.s = { border: { ...borderStyle }, font: { name: "微軟正黑體", size: 11 }, alignment: { vertical: "center", horizontal: "center" } };
+            
+            if (rowNum === 1) { 
+                cell.s.font.bold = true; cell.s.border.bottom = { style: "medium" }; 
+            } else { 
+                // A欄(項次)置中，B、C欄靠左，D欄(數量)置中
+                if (colLetter === 'B' || colLetter === 'C') cell.s.alignment.horizontal = "left"; 
+            }
+        }
+        
+        // 畫出群組黑白大框粗線 (涵蓋 A 到 D 欄)
+        excelMerges.forEach(merge => {
+            for (let r = merge.s.r; r <= merge.e.r; r++) {
+                for (let c = 0; c <= 3; c++) {
+                    const cell = cellMap[r] ? cellMap[r][c] : null; if (!cell) continue;
+                    if (r === merge.s.r) cell.s.border.top = { style: "medium" };
+                    if (r === merge.e.r) cell.s.border.bottom = { style: "medium" };
+                    if (c === 0) cell.s.border.left = { style: "medium" };
+                    if (c === 3) cell.s.border.right = { style: "medium" };
+                }
+            }
+        });
+        
+        ws['!merges'] = excelMerges;
+        ws['!cols'] = excelRows[0].map((_, c) => {
+            let maxLen = 8;
+            excelRows.forEach(row => { if (row[c]) { let l = 0; const s = row[c].toString(); for (let i=0; i<s.length; i++) l += s.charCodeAt(i)>255?2.1:1.05; if (l>maxLen) maxLen=l; } });
+            return { wch: Math.ceil(maxLen) + 3 };
+        });
+        
+        XLSX.utils.book_append_sheet(wb, ws, "統整結果");
+        XLSX.writeFile(wb, `EASE 訂單商品整合_${getFormattedDate()}.xlsx`);
+    };
+
+    function getFormattedDate() {
+        const today = new Date();
+        return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    }
+</script>
+
+</body>
+</html>
