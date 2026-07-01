@@ -69,13 +69,13 @@
 <div class="container">
     <div class="header-area">
         <h2>EASE Excel 訂單商品系統</h2>
-        <span class="credits">🍌 核心技術支援：Banana 的「專屬終身無償長工」工程師 🛠️</span>
+        <span class="credits">🍌 核心技術支援：Banana 的「專屬終身無償」工程師 🛠️</span>
     </div>
     
     <div class="info-box">
         <strong>💡 操作流程：</strong><br>
         1. 點擊下方區塊選擇一個或多個 Excel 檔案。<br>
-        2. 點擊 <strong>「🚀 開始分析統整」</strong> 按鈕，程式將透過進度條依序處理 Products 分頁。<br>
+        2. 點擊 <strong>「🚀 開始分析統整」</strong> 按鈕，程式將開始處理 Excel資料表。<br>
         3. 處理完畢後即可在網頁下方看見數據預覽，並可點擊下載按鈕匯出結果。
     </div>
 
@@ -227,9 +227,9 @@
         }
 
         // 4 欄位網頁預覽結構 (A:項次, B:主要分類, C:次要分類, D:數量)
-        let html = '<table class="pdf-table"><thead><tr><th>項次</th><th>主要分類</th><th>次要分類</th><th>數量</th></tr></thead><tbody>';
+        let html = '<table class="pdf-table"><thead><tr><th>項次</th><th>品項</th><th>種類</th><th>數量</th></tr></thead><tbody>';
         
-        excelRows = [['項次', '主要分類', '次要分類', '數量']];
+        excelRows = [['項次', '品項', '種類', '數量']];
         excelMerges = [];
         let currentExcelRowIdx = 1; 
         let itemIndex = 1; 
