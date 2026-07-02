@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EASE Excel 訂單商品系統</title>
+    <title>EASE Excel 訂單商品統計系統</title>
+    <!-- 引入 Excel 樣式核心套件 -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
     <style>
         body {
@@ -57,7 +58,6 @@
         .table-responsive { max-height: 500px; overflow-y: auto; margin-top: 15px; }
         table { border-collapse: collapse; width: 100%; background-color: #fff; }
         
-        /* 表格樣式 */
         .pdf-table th, .pdf-table td { border: 1px solid #ddd; padding: 12px 10px; font-size: 14px; }
         .pdf-table th { background-color: #f5f5f5; font-weight: bold; color: #333; text-align: center; }
         .pdf-table td.left-align { text-align: left; }
@@ -68,21 +68,24 @@
 
 <div class="container">
     <div class="header-area">
-        <h2>EASE Excel 訂單商品系統</h2>
+        <h2>EASE Excel 訂單商品統計系統</h2>
         <span class="credits">🍌 核心技術支援：Banana 的「專屬終身無償」工程師 🛠️</span>
     </div>
     
+    <!-- 操作流程說明 -->
     <div class="info-box">
         <strong>💡 操作流程：</strong><br>
         1. 點擊下方區塊選擇一個或多個 Excel 檔案。<br>
-        2. 點擊 <strong>「🚀 開始分析統整」</strong> 按鈕，程式將開始處理 Excel資料表。<br>
+        2. 點擊 <strong>「🚀 開始分析統整」</strong> 按鈕，程式將開始處理 Excel資料表。。<br>
         3. 處理完畢後即可在網頁下方看見數據預覽，並可點擊下載按鈕匯出結果。
     </div>
 
+    <!-- 檔案上傳區塊 -->
     <div class="upload-section">
         <input type="file" id="uploadFiles" accept=".xlsx, .xls" multiple />
     </div>
 
+    <!-- 待處理檔案動態清單列表 -->
     <div class="file-list-container" id="fileListContainer" style="display: none;">
         <div class="file-list-header">
             <span>排隊等待統整的檔案：</span>
@@ -91,6 +94,7 @@
         <ul id="fileList" class="file-list"></ul>
     </div>
     
+    <!-- 控制與進度條區塊 -->
     <div class="action-area">
         <button id="processBtn" class="btn btn-primary" disabled>🚀 開始分析統整</button>
         
@@ -205,10 +209,15 @@
                     const sheetData = XLSX.utils.sheet_to_json(workbook.Sheets[targetSheetName], { header: 1, defval: '' });
                     for (let r = 1; r < sheetData.length; r++) {
                         const row = sheetData[r];
-                        const mainCat = row[60] ? row[60].toString().trim() : '';
-                        const subCat = row[61] ? row[61].toString().trim() : '';
+                        let mainCat = row[60] ? row[60].toString().trim() : '';
+                        let subCat = row[61] ? row[61].toString().trim() : '';
                         const qty = parseFloat(row[68]) || 0;
-                        if (mainCat !== '' && subCat !== '') {
+
+                        // 🌟 防呆修正：只要主要分類有值，即使次要分類是空的也絕對不刪除，自動遞補相同名稱
+                        if (mainCat !== '') {
+                            if (subCat === '') {
+                                subCat = mainCat; 
+                            }
                             if (!globalSummary[mainCat]) globalSummary[mainCat] = {};
                             globalSummary[mainCat][subCat] = (globalSummary[mainCat][subCat] || 0) + qty;
                         }
@@ -226,22 +235,27 @@
             return;
         }
 
-        // 4 欄位網頁預覽結構 (A:項次, B:主要分類, C:次要分類, D:數量)
-        let html = '<table class="pdf-table"><thead><tr><th>項次</th><th>品項</th><th>種類</th><th>數量</th></tr></thead><tbody>';
+        let html = '<table class="pdf-table"><thead><tr><th>項次</th><th>商品名稱</th><th>種類品項</th><th>數量</th></tr></thead><tbody>';
         
-        excelRows = [['項次', '品項', '種類', '數量']];
+        excelRows = [['項次', '商品名稱', '種類品項', '數量']];
         excelMerges = [];
         let currentExcelRowIdx = 1; 
         let itemIndex = 1; 
 
-        for (let mainCat in globalSummary) {
+        // 🌟 排序關鍵：先將主要分類轉為陣列並進行 A-Z (或筆畫) 排序
+        const sortedMainCats = Object.keys(globalSummary).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+        for (let mainCat of sortedMainCats) {
             const subCats = globalSummary[mainCat];
-            const subCatKeys = Object.keys(subCats);
-            const rowSpanCount = subCatKeys.length; 
+            
+            // 🌟 排序關鍵二：同一個主分類下的次要分類，也一併進行 A-Z 排序
+            const sortedSubCats = Object.keys(subCats).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+            const rowSpanCount = sortedSubCats.length; 
+            
             let isFirstRow = true;
             let startRowIdx = currentExcelRowIdx;
 
-            for (let subCat in subCats) {
+            for (let subCat of sortedSubCats) {
                 const qty = subCats[subCat];
                 if (isFirstRow) {
                     html += `<tr>
@@ -260,7 +274,8 @@
                 excelRows.push([itemIndex, mainCat, subCat, qty]);
                 currentExcelRowIdx++;
             }
-            // A欄(項次)與B欄(主要分類)同時綁定合併儲存格
+            
+            // 建立 A 欄（項次）與 B 欄（主要分類）的合併規則
             excelMerges.push({ s: { r: startRowIdx, c: 0 }, e: { r: currentExcelRowIdx - 1, c: 0 } });
             excelMerges.push({ s: { r: startRowIdx, c: 1 }, e: { r: currentExcelRowIdx - 1, c: 1 } });
             itemIndex++;
@@ -294,12 +309,11 @@
             if (rowNum === 1) { 
                 cell.s.font.bold = true; cell.s.border.bottom = { style: "medium" }; 
             } else { 
-                // A欄(項次)置中，B、C欄靠左，D欄(數量)置中
                 if (colLetter === 'B' || colLetter === 'C') cell.s.alignment.horizontal = "left"; 
             }
         }
         
-        // 畫出群組黑白大框粗線 (涵蓋 A 到 D 欄)
+        // 畫出群組黑白大框粗線
         excelMerges.forEach(merge => {
             for (let r = merge.s.r; r <= merge.e.r; r++) {
                 for (let c = 0; c <= 3; c++) {
