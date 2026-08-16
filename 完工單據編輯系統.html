@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>弱電/網路/儲存設備 代工完工交付暨驗收單</title>
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --primary-light: #eff6ff;
+      --border-color: #cbd5e1;
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans TC", sans-serif;
+    }
+
+    body {
+      background-color: #f1f5f9;
+      color: var(--text-main);
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 30px 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 2px solid #e2e8f0;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #1d4ed8;
+    }
+
+    .btn-secondary {
+      background: #e2e8f0;
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: #cbd5e1;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: #fff;
+    }
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-warning {
+      background: #f59e0b;
+      color: #fff;
+    }
+    .btn-warning:hover {
+      background: #d97706;
+    }
+
+    .btn-danger {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    .header-title {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+
+    .header-title h1 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--primary);
+      letter-spacing: 1.5px;
+    }
+
+    .header-title p {
+      margin: 6px 0 0 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .section-block {
+      margin-bottom: 25px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: bold;
+      color: var(--primary);
+      border-left: 4px solid var(--primary);
+      padding-left: 8px;
+      margin-bottom: 12px;
+      background: var(--primary-light);
+      padding-top: 4px;
+      padding-bottom: 4px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+
+    input, select, textarea {
+      padding: 6px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-size: 13px;
+      outline: none;
+      width: 100%;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 70px;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 6px 8px;
+      text-align: left;
+    }
+
+    th {
+      background: #f8fafc;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .total-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+
+    .total-bar span.highlight {
+      color: #dc2626;
+      font-size: 16px;
+    }
+
+    .card-box {
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      background: #fff;
+    }
+
+    .card-box-title {
+      font-weight: 600;
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: #1e293b;
+      border-bottom: 1px dashed var(--border-color);
+      padding-bottom: 4px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+
+    .checkbox-group input[type="checkbox"] {
+      width: auto;
+    }
+
+    .sign-area {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 25px;
+      padding: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    .sign-box {
+      display: flex;
+      flex-direction: column;
+      height: 90px;
+      justify-content: space-between;
+    }
+
+    .sign-line {
+      border-bottom: 1px solid #000;
+      margin-top: 35px;
+    }
+
+    /* ============================================================
+       列印 / 轉存 PDF 專用樣式 (確保未填寫處保持空白)
+       ============================================================ */
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .container {
+        max-width: 100%;
+        padding: 0;
+        box-shadow: none;
+      }
+      .toolbar, .btn, .no-print {
+        display: none !important;
+      }
+      
+      /* 隱藏所有 Placeholder 提示字 */
+      input::placeholder, textarea::placeholder {
+        color: transparent !important;
+      }
+
+      /* 輸入框外觀轉為留白底線 */
+      input, select {
+        border: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        border-radius: 0 !important;
+        padding: 2px 0 !important;
+        background: transparent !important;
+        font-size: 12px;
+        min-height: 22px;
+      }
+
+      textarea {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 4px !important;
+        background: transparent !important;
+        font-size: 12px;
+      }
+
+      /* 表格內的輸入框不需要底線，保持乾淨 */
+      table input, table select {
+        border-bottom: none !important;
+      }
+
+      select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+      }
+
+      th {
+        background-color: #f1f5f9 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .section-title {
+        background-color: #eff6ff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .card-box, .sign-area, .section-block {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- 頂部操作工具列 -->
+  <div class="toolbar">
+    <div class="btn-group">
+      <button class="btn btn-warning" onclick="saveToLocal()">💾 暫存至瀏覽器</button>
+      <button class="btn btn-secondary" onclick="loadFromLocal()">📂 讀取暫存</button>
+      <button class="btn btn-success" onclick="exportDataJSON()">📤 匯出 JSON 備份檔</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('importFile').click()">📥 匯入 JSON</button>
+      <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importDataJSON(event)">
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-secondary" onclick="resetForm()">🔄 清空重填</button>
+      <button class="btn btn-primary" onclick="prepareAndPrint()">🖨️ 產生 PDF / 列印</button>
+    </div>
+  </div>
+
+  <!-- 單據標題 -->
+  <div class="header-title">
+    <h1>網路、弱電暨 NAS 儲存設備 完工交付驗收單</h1>
+    <p>工程代工 / 材料採購 / 系統建置 / 帳號密碼點交留存聯</p>
+  </div>
+
+  <!-- 區塊一：基本資料 -->
+  <div class="section-block">
+    <div class="section-title">一、 基本資訊</div>
+    <div class="grid-4" style="margin-bottom: 10px;">
+      <div class="form-group">
+        <label>案件編號</label>
+        <input type="text" id="caseNo" placeholder="例：WK-20260816-01">
+      </div>
+      <div class="form-group">
+        <label>施工日期</label>
+        <input type="date" id="workDate">
+      </div>
+      <div class="form-group">
+        <label>客戶姓名 / 聯絡人</label>
+        <input type="text" id="clientName" placeholder="請輸入姓名">
+      </div>
+      <div class="form-group">
+        <label>客戶聯絡電話</label>
+        <input type="text" id="clientPhone" placeholder="例：0912-345678">
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="form-group">
+        <label>施工地點 / 地址</label>
+        <input type="text" id="workAddress" placeholder="請輸入完整地址">
+      </div>
+      <div class="form-group">
+        <label>代工工程師 / 聯絡資訊</label>
+        <input type="text" id="workerContact" placeholder="工程師姓名 / 電話">
+      </div>
+    </div>
+  </div>
+
+  <!-- 區塊二：代購硬體零件清單 -->
+  <div class="section-block">
+    <div class="section-title">二、 代購硬體零件與耗材明細 (BOM)</div>
+    <table id="hardware-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">類別</th>
+          <th style="width: 25%;">品名與型號規格</th>
+          <th style="width: 14%;">購買通路/發票</th>
+          <th style="width: 10%;">單價</th>
+          <th style="width: 7%;">數量</th>
+          <th style="width: 10%;">小計</th>
+          <th style="width: 12%;">保固期限</th>
+          <th class="no-print" style="width: 8%;">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn btn-secondary no-print" onclick="addHardwareRow()">＋ 新增硬體零件</button>
+    <div class="total-bar">
+      <span>硬體材料費合計：NT$ <span id="hw-total-text">0</span></span>
+    </div>
+  </div>
+
+  <!-- 區塊三：軟體與授權清單 -->
+  <div class="section-block">
+    <div class="section-title">三、 軟體、加購授權與 App 明細</div>
+    <table id="software-table">
+      <thead>
+        <tr>
+          <th style="width: 22%;">軟體 / 授權名稱</th>
+          <th style="width: 16%;">購買通路</th>
+          <th style="width: 24%;">軟體序號 / 金鑰 (License Key)</th>
+          <th style="width: 18%;">安裝 / 啟用方式</th>
+          <th style="width: 12%;">金額</th>
+          <th class="no-print" style="width: 8%;">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn btn-secondary no-print" onclick="addSoftwareRow()">＋ 新增軟體授權</button>
+    <div class="total-bar">
+      <span>軟體授權費合計：NT$ <span id="sw-total-text">0</span></span>
+    </div>
+  </div>
+
+  <!-- 區塊四：代工服務項目 -->
+  <div class="section-block">
+    <div class="section-title">四、 代工施作項目與工資</div>
+    <table id="service-table">
+      <thead>
+        <tr>
+          <th style="width: 30%;">施作類別 / 工項名稱</th>
+          <th style="width: 50%;">施作內容細節 (安裝/設定/拉線/調教)</th>
+          <th style="width: 12%;">工資費用</th>
+          <th class="no-print" style="width: 8%;">操作</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn btn-secondary no-print" onclick="addServiceRow()">＋ 新增施作項目</button>
+    
+    <div class="total-bar" style="background: #f1f5f9; margin-top: 10px;">
+      <span>代工費小計：NT$ <span id="srv-total-text">0</span></span>
+      <span style="border-left: 2px solid #cbd5e1; padding-left: 20px;">
+        本次結算總金額 (材料+軟體+代工)：NT$ <span id="grand-total-text" class="highlight">0</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- 區塊五：網路設備參數與帳號密碼交付表 -->
+  <div class="section-block">
+    <div class="section-title">五、 網路設備參數與帳號密碼交付表 (客戶重要留存)</div>
+    
+    <!-- 1. 中華電信 Hinet -->
+    <div class="card-box">
+      <div class="card-box-title">🌐 1. 中華電信外網連線 (Hinet PPPoE)</div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>連線模式</label>
+          <select id="netMode">
+            <option value="">-- 請選擇 --</option>
+            <option>PPPoE 撥號 (動態IP)</option>
+            <option>PPPoE 撥號 (固定IP / @ip.hinet.net)</option>
+            <option>固定 IP (Static IP)</option>
+            <option>DHCP 自動取得</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>PPPoE 帳號</label>
+          <input type="text" id="pppoeAccount" placeholder="例：8xxxxxxx@hinet.net">
+        </div>
+        <div class="form-group">
+          <label>PPPoE 密碼</label>
+          <input type="text" id="pppoePassword" placeholder="請填寫連線密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>對外 IP / 申請之固定 IP</label>
+          <input type="text" id="wanIP" placeholder="例：220.xxx.xxx.xxx">
+        </div>
+        <div class="form-group">
+          <label>數據機內部 IP (預設 Gateway)</label>
+          <input type="text" id="modemIP" placeholder="例：192.168.1.1">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. 分享器 / Mesh / Switch -->
+    <div class="card-box">
+      <div class="card-box-title">📶 2. 網路設備（TP-Link / 一般分享器 / Mesh / Switch）</div>
+      <div class="checkbox-group">
+        <span style="font-size: 13px; font-weight: 600;">架構類型：</span>
+        <label><input type="checkbox" id="archRouter"> 一般分享器</label>
+        <label><input type="checkbox" id="archMeshWired"> Mesh (有線回程)</label>
+        <label><input type="checkbox" id="archMeshWireless"> Mesh (無線回程)</label>
+        <label><input type="checkbox" id="archSwitch"> Switch 交換器</label>
+      </div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>設備本機管理 IP</label>
+          <input type="text" id="routerIP" placeholder="例：192.168.0.1 / 192.168.68.1">
+        </div>
+        <div class="form-group">
+          <label>本機管理員帳號 (Local Admin)</label>
+          <input type="text" id="routerLocalUser" placeholder="admin">
+        </div>
+        <div class="form-group">
+          <label>本機管理員密碼 (Local Password)</label>
+          <input type="text" id="routerLocalPass" placeholder="本機登入密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>【TP-Link 雲端帳號】(Tether / Deco App 帳號)</label>
+          <input type="text" id="tplinkCloudUser" placeholder="例：user@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>【TP-Link 雲端密碼】(App 登入密碼)</label>
+          <input type="text" id="tplinkCloudPass" placeholder="TP-Link ID 密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>Wi-Fi 無線網路名稱 (SSID)</label>
+          <input type="text" id="wifiSSID" placeholder="例：MyHome_WiFi">
+        </div>
+        <div class="form-group">
+          <label>Wi-Fi 連線密碼</label>
+          <input type="text" id="wifiPass" placeholder="請填寫 Wi-Fi 密碼">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. NAS 網路儲存伺服器 -->
+    <div class="card-box">
+      <div class="card-box-title">🗄️ 3. NAS 網路儲存伺服器 (Synology)</div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>NAS 區網固定 IP</label>
+          <input type="text" id="nasIP" placeholder="例：192.168.0.200">
+        </div>
+        <div class="form-group">
+          <label>DDNS 網址 / 網域位置</label>
+          <input type="text" id="nasDDNS" placeholder="例：myhome.synology.me">
+        </div>
+        <div class="form-group">
+          <label>QuickConnect ID</label>
+          <input type="text" id="nasQC" placeholder="例：myhome_nas">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>【群暉原廠帳號】(Synology Account - DDNS/保固)</label>
+          <input type="text" id="synologyAccount" placeholder="例：user@gmail.com">
+        </div>
+        <div class="form-group">
+          <label>【群暉原廠密碼】(Synology Account 密碼)</label>
+          <input type="text" id="synologyPassword" placeholder="原廠帳號密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>【NAS 系統登入帳號】(DSM 管理員/常用帳號)</label>
+          <input type="text" id="nasUser" placeholder="例：admin / 常用帳號">
+        </div>
+        <div class="form-group">
+          <label>【NAS 系統登入密碼】(DSM 管理員/常用密碼)</label>
+          <input type="text" id="nasPass" placeholder="DSM 登入密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>硬碟陣列模式 (RAID)</label>
+          <input type="text" id="nasRaid" placeholder="例：SHR / RAID 1 / RAID 5">
+        </div>
+        <div class="form-group">
+          <label>主要共用資料夾名稱</label>
+          <input type="text" id="nasSharedFolder" placeholder="例：/Data, /Photo, /Surveillance">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 監視器系統 -->
+    <div class="card-box">
+      <div class="card-box-title">📹 4. 監視器系統 (CCTV / IP Cam / NVR)</div>
+      <div class="grid-3">
+        <div class="form-group">
+          <label>主機 / 鏡頭 內部 IP</label>
+          <input type="text" id="camIP" placeholder="例：192.168.0.50 ~ 54">
+        </div>
+        <div class="form-group">
+          <label>App 雲端帳號 / 登入帳號</label>
+          <input type="text" id="camUser" placeholder="監看帳號">
+        </div>
+        <div class="form-group">
+          <label>App 雲端密碼 / 登入密碼</label>
+          <input type="text" id="camPass" placeholder="監看密碼">
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="form-group">
+          <label>設備安全驗證碼 (Verification Code / 加密碼)</label>
+          <input type="text" id="camVerifyCode" placeholder="遠端連線金鑰 (若無則填無)">
+        </div>
+        <div class="form-group">
+          <label>錄影儲存機制</label>
+          <input type="text" id="camStorage" placeholder="例：儲存於 NAS Surveillance / NVR 硬碟 / 記憶卡">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 區塊六：備註說明欄位 -->
+  <div class="section-block">
+    <div class="section-title">六、 備註與補充說明 (Notes & Remarks)</div>
+    <div class="form-group">
+      <textarea id="orderNotes" placeholder="可填寫特殊施工紀錄、後續約定保固項目、未盡事宜或客戶交辦事項..."></textarea>
+    </div>
+  </div>
+
+  <!-- 區塊七：完工驗收確認與簽章 -->
+  <div class="section-block">
+    <div class="section-title">七、 完工驗收項目與雙方簽署確認</div>
+    <div class="checkbox-group" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+      <label><input type="checkbox" id="chk1" checked> 1. 外網 PPPoE 撥號正常，Wi-Fi / Mesh 全室覆蓋與漫遊連線測試正常。</label>
+      <label><input type="checkbox" id="chk2" checked> 2. TP-Link / 路由器 本地後台與手機 App 雲端綁定成功。</label>
+      <label><input type="checkbox" id="chk3" checked> 3. NAS 系統運行正常、內外網 DDNS / QuickConnect 遠端存取與權限設定完成。</label>
+      <label><input type="checkbox" id="chk4" checked> 4. 監視器各路即時畫面角度正常、夜視及錄影儲存排程測試無誤。</label>
+      <label><input type="checkbox" id="chk5" checked> 5. 弱電線路理線標籤化完畢，所有代購零件原廠包裝、保固書、發票憑證已如數點交。</label>
+      <label><input type="checkbox" id="chk6" checked> 6. 本單據記載之所有帳號、密碼已當面與客戶確認並由客戶親自留存保管。</label>
+    </div>
+
+    <div class="sign-area">
+      <div class="sign-box">
+        <span style="font-weight: bold; font-size: 13px;">客戶簽名確認 (驗收無誤)：</span>
+        <div class="sign-line"></div>
+        <div style="font-size: 12px; color: var(--text-muted);">日期：____ 年 ____ 月 ____ 日</div>
+      </div>
+      <div class="sign-box">
+        <span style="font-weight: bold; font-size: 13px;">代工工程師簽名：</span>
+        <div class="sign-line"></div>
+        <div style="font-size: 12px; color: var(--text-muted);">日期：____ 年 ____ 月 ____ 日</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // 金額計算
+  function calcTotals() {
+    let hwTotal = 0;
+    document.querySelectorAll('#hardware-table tbody tr').forEach(row => {
+      const priceVal = row.querySelector('.hw-price')?.value;
+      const qtyVal = row.querySelector('.hw-qty')?.value;
+      const price = parseFloat(priceVal) || 0;
+      const qty = parseFloat(qtyVal) || 0;
+      const subtotal = price * qty;
+      const subtotalInput = row.querySelector('.hw-subtotal');
+      if (subtotalInput) {
+        subtotalInput.value = subtotal > 0 ? subtotal : '';
+      }
+      hwTotal += subtotal;
+    });
+    document.getElementById('hw-total-text').innerText = hwTotal > 0 ? hwTotal.toLocaleString() : '';
+
+    let swTotal = 0;
+    document.querySelectorAll('.sw-price').forEach(input => {
+      swTotal += parseFloat(input.value) || 0;
+    });
+    document.getElementById('sw-total-text').innerText = swTotal > 0 ? swTotal.toLocaleString() : '';
+
+    let srvTotal = 0;
+    document.querySelectorAll('.srv-price').forEach(input => {
+      srvTotal += parseFloat(input.value) || 0;
+    });
+    document.getElementById('srv-total-text').innerText = srvTotal > 0 ? srvTotal.toLocaleString() : '';
+
+    const grandTotal = hwTotal + swTotal + srvTotal;
+    document.getElementById('grand-total-text').innerText = grandTotal > 0 ? grandTotal.toLocaleString() : '';
+  }
+
+  // 刪除列
+  function deleteRow(btn) {
+    const row = btn.closest('tr');
+    row.remove();
+    calcTotals();
+  }
+
+  // 新增硬體列
+  function addHardwareRow(data = {}) {
+    const tbody = document.querySelector('#hardware-table tbody');
+    const tr = document.createElement('tr');
+    const categories = ['-- 請選擇 --', 'NAS主機', '硬碟/SSD', '一般分享器', 'Mesh主機/子機', 'Switch交換器', '監視器鏡頭/主機', '線材與配件', '電路耗材'];
+    
+    let optionsHtml = categories.map(cat => {
+      const val = cat === '-- 請選擇 --' ? '' : cat;
+      return `<option value="${val}" ${data.category === val ? 'selected' : ''}>${cat}</option>`;
+    }).join('');
+
+    tr.innerHTML = `
+      <td><select class="hw-cat">${optionsHtml}</select></td>
+      <td><input type="text" class="hw-name" placeholder="品名規格" value="${data.name || ''}"></td>
+      <td><input type="text" class="hw-vendor" placeholder="通路/發票" value="${data.vendor || ''}"></td>
+      <td><input type="number" class="hw-price" placeholder="" value="${data.price !== undefined && data.price !== '' ? data.price : ''}" oninput="calcTotals()"></td>
+      <td><input type="number" class="hw-qty" placeholder="" value="${data.qty !== undefined && data.qty !== '' ? data.qty : ''}" oninput="calcTotals()"></td>
+      <td><input type="number" class="hw-subtotal" placeholder="" value="" readonly></td>
+      <td><input type="text" class="hw-warranty" placeholder="保固說明" value="${data.warranty || ''}"></td>
+      <td class="no-print"><button class="btn btn-danger" onclick="deleteRow(this)">刪除</button></td>
+    `;
+    tbody.appendChild(tr);
+    calcTotals();
+  }
+
+  // 新增軟體列
+  function addSoftwareRow(data = {}) {
+    const tbody = document.querySelector('#software-table tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="sw-name" placeholder="軟體名稱" value="${data.name || ''}"></td>
+      <td><input type="text" class="sw-vendor" placeholder="購買通路" value="${data.vendor || ''}"></td>
+      <td><input type="text" class="sw-key" placeholder="序號/金鑰" value="${data.key || ''}"></td>
+      <td><input type="text" class="sw-install" placeholder="安裝方式" value="${data.install || ''}"></td>
+      <td><input type="number" class="sw-price" placeholder="" value="${data.price !== undefined && data.price !== '' ? data.price : ''}" oninput="calcTotals()"></td>
+      <td class="no-print"><button class="btn btn-danger" onclick="deleteRow(this)">刪除</button></td>
+    `;
+    tbody.appendChild(tr);
+    calcTotals();
+  }
+
+  // 新增工項列
+  function addServiceRow(data = {}) {
+    const tbody = document.querySelector('#service-table tbody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" class="srv-name" placeholder="工項名稱" value="${data.name || ''}"></td>
+      <td><input type="text" class="srv-desc" placeholder="施作內容細節" value="${data.desc || ''}"></td>
+      <td><input type="number" class="srv-price" placeholder="" value="${data.price !== undefined && data.price !== '' ? data.price : ''}" oninput="calcTotals()"></td>
+      <td class="no-print"><button class="btn btn-danger" onclick="deleteRow(this)">刪除</button></td>
+    `;
+    tbody.appendChild(tr);
+    calcTotals();
+  }
+
+  // 抓取全表單物件 (含備註欄位)
+  function getFormData() {
+    const data = {
+      basic: {
+        caseNo: document.getElementById('caseNo').value,
+        workDate: document.getElementById('workDate').value,
+        clientName: document.getElementById('clientName').value,
+        clientPhone: document.getElementById('clientPhone').value,
+        workAddress: document.getElementById('workAddress').value,
+        workerContact: document.getElementById('workerContact').value
+      },
+      hardwares: [],
+      softwares: [],
+      services: [],
+      configs: {
+        netMode: document.getElementById('netMode').value,
+        pppoeAccount: document.getElementById('pppoeAccount').value,
+        pppoePassword: document.getElementById('pppoePassword').value,
+        wanIP: document.getElementById('wanIP').value,
+        modemIP: document.getElementById('modemIP').value,
+        archRouter: document.getElementById('archRouter').checked,
+        archMeshWired: document.getElementById('archMeshWired').checked,
+        archMeshWireless: document.getElementById('archMeshWireless').checked,
+        archSwitch: document.getElementById('archSwitch').checked,
+        routerIP: document.getElementById('routerIP').value,
+        routerLocalUser: document.getElementById('routerLocalUser').value,
+        routerLocalPass: document.getElementById('routerLocalPass').value,
+        tplinkCloudUser: document.getElementById('tplinkCloudUser').value,
+        tplinkCloudPass: document.getElementById('tplinkCloudPass').value,
+        wifiSSID: document.getElementById('wifiSSID').value,
+        wifiPass: document.getElementById('wifiPass').value,
+        nasIP: document.getElementById('nasIP').value,
+        nasDDNS: document.getElementById('nasDDNS').value,
+        nasQC: document.getElementById('nasQC').value,
+        synologyAccount: document.getElementById('synologyAccount').value,
+        synologyPassword: document.getElementById('synologyPassword').value,
+        nasUser: document.getElementById('nasUser').value,
+        nasPass: document.getElementById('nasPass').value,
+        nasRaid: document.getElementById('nasRaid').value,
+        nasSharedFolder: document.getElementById('nasSharedFolder').value,
+        camIP: document.getElementById('camIP').value,
+        camUser: document.getElementById('camUser').value,
+        camPass: document.getElementById('camPass').value,
+        camVerifyCode: document.getElementById('camVerifyCode').value,
+        camStorage: document.getElementById('camStorage').value
+      },
+      notes: document.getElementById('orderNotes').value,
+      checks: {
+        chk1: document.getElementById('chk1').checked,
+        chk2: document.getElementById('chk2').checked,
+        chk3: document.getElementById('chk3').checked,
+        chk4: document.getElementById('chk4').checked,
+        chk5: document.getElementById('chk5').checked,
+        chk6: document.getElementById('chk6').checked
+      }
+    };
+
+    document.querySelectorAll('#hardware-table tbody tr').forEach(row => {
+      data.hardwares.push({
+        category: row.querySelector('.hw-cat').value,
+        name: row.querySelector('.hw-name').value,
+        vendor: row.querySelector('.hw-vendor').value,
+        price: row.querySelector('.hw-price').value,
+        qty: row.querySelector('.hw-qty').value,
+        warranty: row.querySelector('.hw-warranty').value
+      });
+    });
+
+    document.querySelectorAll('#software-table tbody tr').forEach(row => {
+      data.softwares.push({
+        name: row.querySelector('.sw-name').value,
+        vendor: row.querySelector('.sw-vendor').value,
+        key: row.querySelector('.sw-key').value,
+        install: row.querySelector('.sw-install').value,
+        price: row.querySelector('.sw-price').value
+      });
+    });
+
+    document.querySelectorAll('#service-table tbody tr').forEach(row => {
+      data.services.push({
+        name: row.querySelector('.srv-name').value,
+        desc: row.querySelector('.srv-desc').value,
+        price: row.querySelector('.srv-price').value
+      });
+    });
+
+    return data;
+  }
+
+  // 將資料還原至表單
+  function populateForm(data) {
+    if (!data) return;
+
+    if (data.basic) {
+      document.getElementById('caseNo').value = data.basic.caseNo || '';
+      document.getElementById('workDate').value = data.basic.workDate || '';
+      document.getElementById('clientName').value = data.basic.clientName || '';
+      document.getElementById('clientPhone').value = data.basic.clientPhone || '';
+      document.getElementById('workAddress').value = data.basic.workAddress || '';
+      document.getElementById('workerContact').value = data.basic.workerContact || '';
+    }
+
+    document.querySelector('#hardware-table tbody').innerHTML = '';
+    if (data.hardwares && data.hardwares.length > 0) {
+      data.hardwares.forEach(hw => addHardwareRow(hw));
+    }
+
+    document.querySelector('#software-table tbody').innerHTML = '';
+    if (data.softwares && data.softwares.length > 0) {
+      data.softwares.forEach(sw => addSoftwareRow(sw));
+    }
+
+    document.querySelector('#service-table tbody').innerHTML = '';
+    if (data.services && data.services.length > 0) {
+      data.services.forEach(srv => addServiceRow(srv));
+    }
+
+    if (data.configs) {
+      Object.keys(data.configs).forEach(key => {
+        const el = document.getElementById(key);
+        if (el) {
+          if (el.type === 'checkbox') el.checked = data.configs[key];
+          else el.value = data.configs[key] || '';
+        }
+      });
+    }
+
+    document.getElementById('orderNotes').value = data.notes || '';
+
+    if (data.checks) {
+      Object.keys(data.checks).forEach(key => {
+        const el = document.getElementById(key);
+        if (el) el.checked = data.checks[key];
+      });
+    }
+
+    calcTotals();
+  }
+
+  // 1. 暫存至 LocalStorage
+  function saveToLocal() {
+    const data = getFormData();
+    localStorage.setItem('network_work_order_data', JSON.stringify(data));
+    alert('✅ 資料已成功暫存至瀏覽器！');
+  }
+
+  // 2. 從 LocalStorage 讀取
+  function loadFromLocal() {
+    const saved = localStorage.getItem('network_work_order_data');
+    if (!saved) {
+      alert('⚠️ 尚未找到任何暫存資料！');
+      return;
+    }
+    populateForm(JSON.parse(saved));
+    alert('✅ 暫存資料已成功讀取還原！');
+  }
+
+  // 3. 匯出 JSON 備份檔
+  function exportDataJSON() {
+    const data = getFormData();
+    const jsonStr = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const clientName = data.basic.clientName ? `${data.basic.clientName}_` : '';
+    const dateStr = data.basic.workDate || new Date().toISOString().slice(0, 10);
+    const filename = `完工驗收單_${clientName}${dateStr}.json`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // 4. 匯入 JSON 備份檔
+  function importDataJSON(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        populateForm(data);
+        alert('✅ JSON 備份檔案已成功匯入！');
+      } catch (err) {
+        alert('❌ 檔案解析失敗，請確認是否為正確的 JSON 格式。');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // 列印前更新計算並觸發列印
+  function prepareAndPrint() {
+    calcTotals();
+    window.print();
+  }
+
+  // 重設表單（預設乾淨留白列）
+  function resetForm() {
+    document.querySelector('#hardware-table tbody').innerHTML = '';
+    document.querySelector('#software-table tbody').innerHTML = '';
+    document.querySelector('#service-table tbody').innerHTML = '';
+
+    for(let i = 0; i < 3; i++) addHardwareRow();
+    addSoftwareRow();
+    addServiceRow();
+    addServiceRow();
+
+    document.querySelectorAll('input[type="text"]').forEach(i => i.value = '');
+    document.querySelectorAll('input[type="date"]').forEach(i => i.value = '');
+    document.getElementById('orderNotes').value = '';
+    document.getElementById('workDate').valueAsDate = new Date();
+    calcTotals();
+  }
+
+  // 頁面初次載入
+  window.onload = function() {
+    resetForm();
+  };
+</script>
+
+</body>
+</html>
