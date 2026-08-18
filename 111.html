@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>庫存進出計算工具 (H - I 欄計算)</title>
+    <!-- 引入 Tailwind CSS 確保排版簡潔美觀 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 SheetJS 處理 Excel 檔案 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto bg-white shadow-md rounded-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">庫存品項總數量計算工具</h1>
+        <p class="text-gray-600 mb-6">請上傳一或多個 Excel 檔案，系統將自動計算 <b>H 欄（In）減去 I 欄（Out）</b> 的各品項總數量。</p>
+
+        <!-- 上傳區塊 -->
+        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition cursor-pointer mb-6" id="drop-zone">
+            <input type="file" id="file-input" multiple accept=".xlsx, .xls, .csv" class="hidden">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="text-gray-700 font-medium">點擊此處或將檔案拖曳至這裡上傳</p>
+            <p class="text-xs text-gray-500 mt-1">支援 .xlsx, .xls 格式</p>
+        </div>
+
+        <!-- 結果顯示區塊 -->
+        <div id="result-section" class="hidden">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-semibold text-gray-700">計算結果清單</h2>
+                <button id="export-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium transition">
+                    匯出 Excel 結果
+                </button>
+            </div>
+            <div class="overflow-x-auto border border-gray-200 rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200 text-left text-sm">
+                    <thead class="bg-gray-100 text-gray-700 uppercase font-semibold">
+                        <tr>
+                            <th class="px-6 py-3">來源檔案</th>
+                            <th class="px-6 py-3">品項名稱 (Title)</th>
+                            <th class="px-6 py-3 text-right">總數量 (In - Out)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-tbody" class="divide-y divide-gray-200 bg-white">
+                        <!-- 動態插入資料 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const resultSection = document.getElementById('result-section');
+        const resultTbody = document.getElementById('result-tbody');
+        const exportBtn = document.getElementById('export-btn');
+
+        let allAggregatedData = [];
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-blue-500', 'bg-blue-50'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('border-blue-500', 'bg-blue-50'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+            if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length) handleFiles(e.target.files);
+        });
+
+        function handleFiles(files) {
+            allAggregatedData = [];
+            resultTbody.innerHTML = '';
+            
+            let filesProcessed = 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // 讀取第一個工作表
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // 轉為 JSON (header: 1 代表用陣列對應行列)
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (rows.length > 1) {
+                        const headers = rows[0];
+                        // H欄是第 8 欄 (Index 7)，I欄是第 9 欄 (Index 8)，Title 通常在第 3 欄 (Index 2)
+                        // 我們直接根據欄位名稱尋找索引，確保精準
+                        let titleIdx = headers.indexOf('Title');
+                        let inIdx = headers.indexOf('In');
+                        let outIdx = headers.indexOf('Out');
+
+                        // 若找不到表頭名稱，退回預設對應：Title(2), In(7), Out(8)
+                        if (titleIdx === -1) titleIdx = 2;
+                        if (inIdx === -1) inIdx = 7;
+                        if (outIdx === -1) outIdx = 8;
+
+                        const itemMap = {};
+
+                        for (let i = 1; i < rows.length; i++) {
+                            const row = rows[i];
+                            const title = row[titleIdx];
+                            if (!title) continue;
+
+                            const inVal = parseFloat(row[inIdx]) || 0;
+                            const outVal = parseFloat(row[outIdx]) || 0;
+                            const net = inVal - outVal;
+
+                            if (!itemMap[title]) {
+                                itemMap[title] = 0;
+                            }
+                            itemMap[title] += net;
+                        }
+
+                        for (const [title, total] of Object.entries(itemMap)) {
+                            allAggregatedData.push({
+                                fileName: file.name,
+                                title: title,
+                                total: total
+                            });
+                        }
+                    }
+
+                    filesProcessed++;
+                    if (filesProcessed === files.length) {
+                        renderResults();
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function renderResults() {
+            resultTbody.innerHTML = '';
+            if (allAggregatedData.length === 0) {
+                resultTbody.innerHTML = `<tr><td colspan="3" class="px-6 py-4 text-center text-gray-500">沒有找到有效的資料</td></tr>`;
+            } else {
+                allAggregatedData.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 text-gray-600">${item.fileName}</td>
+                        <td class="px-6 py-4 font-medium text-gray-900">${item.title}</td>
+                        <td class="px-6 py-4 text-right font-semibold text-blue-600">${item.total.toLocaleString()}</td>
+                    `;
+                    resultTbody.appendChild(tr);
+                });
+            }
+            resultSection.classList.remove('hidden');
+        }
+
+        // 匯出功能
+        exportBtn.addEventListener('click', () => {
+            const exportData = allAggregatedData.map(item => ({
+                '來源檔案': item.fileName,
+                '品項名稱': item.title,
+                '總數量 (In - Out)': item.total
+            }));
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "計算結果");
+            XLSX.writeFile(wb, "庫存計算結果.xlsx");
+        });
+    </script>
+</body>
+</html>
