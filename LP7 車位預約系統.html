@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+  <title>LP7-B2F 智慧車位導航系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg-dark: #0a0e17;
+      --card-bg: rgba(16, 24, 40, 0.85);
+      --neon-green: #10b981;
+      --neon-cyan: #06b6d4;
+      --neon-accent: #3b82f6;
+    }
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 30px 30px, 30px 30px;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      touch-action: pan-x pan-y pinch-zoom;
+      overflow: hidden;
+    }
+    .glass-panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+    .blueprint-svg {
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    /* 車位樣式 */
+    .slot-normal {
+      fill: #151f30;
+      stroke: #2a3b5c;
+      stroke-width: 1.2;
+      transition: all 0.25s ease;
+    }
+    .slot-normal text {
+      fill: #64748b;
+      font-size: 11px;
+      font-weight: 500;
+      text-anchor: middle;
+      dominant-baseline: central;
+      pointer-events: none;
+    }
+    /* 亮起的空車位 */
+    .slot-available {
+      fill: #064e3b !important;
+      stroke: #34d399 !important;
+      stroke-width: 2 !important;
+      cursor: pointer;
+      filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.65));
+      animation: pulseGlow 2s infinite alternate ease-in-out;
+    }
+    .slot-available text {
+      fill: #a7f3d0 !important;
+      font-weight: 800 !important;
+      font-size: 12px !important;
+      filter: drop-shadow(0 0 2px rgba(0,0,0,0.8));
+    }
+    @keyframes pulseGlow {
+      0% {
+        fill: #064e3b;
+        stroke: #34d399;
+        filter: drop-shadow(0 0 4px rgba(52, 211, 153, 0.4));
+      }
+      100% {
+        fill: #047857;
+        stroke: #6ee7b7;
+        filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.9));
+      }
+    }
+    /* 建築柱子 */
+    .pillar-box {
+      fill: #090d16;
+      stroke: #38bdf8;
+      stroke-width: 1.2;
+    }
+    .pillar-text {
+      fill: #38bdf8;
+      font-size: 9px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+      font-family: monospace;
+      pointer-events: none;
+    }
+    /* 機房與設備區 */
+    .area-facility {
+      fill: #111827;
+      stroke: #374151;
+      stroke-width: 1.5;
+    }
+    .area-shaft {
+      fill: #0b1329;
+      stroke: #1e3a8a;
+      stroke-dasharray: 4,4;
+      stroke-width: 1.2;
+    }
+    .area-text {
+      fill: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: central;
+      letter-spacing: 1px;
+    }
+    .road-lane {
+      fill: #090f1d;
+      stroke: #1d4ed8;
+      stroke-dasharray: 6,4;
+      stroke-width: 1.5;
+    }
+  </style>
+</head>
+<body class="w-screen h-screen flex flex-col select-none">
+
+  <!-- 頂部炫酷導航列 -->
+  <header class="glass-panel px-4 py-2.5 flex items-center justify-between z-30 border-b border-cyan-500/20">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-3 h-3 rounded-full bg-emerald-400 animate-ping"></div>
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-base font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
+            LP7-B2F 車位分佈圖
+          </h1>
+          <span id="availCountBadge" class="bg-emerald-500/20 text-emerald-400 text-xs px-2 py-0.5 rounded-full border border-emerald-500/30 font-mono">
+            12 空位
+          </span>
+        </div>
+        <p class="text-[10px] text-slate-400 font-mono" id="subTitleDate">9/25 Day • 智慧即時看板</p>
+      </div>
+    </div>
+    
+    <div class="flex items-center space-x-2">
+      <button onclick="openModal()" class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-medium flex items-center space-x-1.5 shadow-lg shadow-cyan-900/40 active:scale-95 transition-all">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        <span>輸入字串</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 提示訊息 Toast -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 transform -translate-y-6 opacity-0 pointer-events-none">
+    <div class="glass-panel px-4 py-2.5 rounded-xl border border-emerald-400/40 shadow-2xl shadow-emerald-950 flex items-center space-x-2 text-emerald-300 text-xs">
+      <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+      </svg>
+      <span id="toastMsg" class="font-medium tracking-wide">已複製到剪貼簿，請至LINE進行貼上</span>
+    </div>
+  </div>
+
+  <!-- 地圖主畫布區域 -->
+  <main id="viewportContainer" class="flex-1 relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing">
+    <div id="mapWrapper" class="absolute origin-top-left will-change-transform" style="transform: translate(0px, 0px) scale(1);">
+      <svg id="blueprintSvg" class="blueprint-svg shadow-2xl" width="1020" height="1520" viewBox="0 0 1020 1520" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="facilityGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#141c2e" />
+            <stop offset="100%" stop-color="#0c1220" />
+          </linearGradient>
+          <pattern id="gridPattern" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255, 255, 255, 0.02)" stroke-width="1"/>
+          </pattern>
+        </defs>
+
+        <!-- 底板背景 -->
+        <rect width="1020" height="1520" fill="#080d1a"/>
+        <rect width="1020" height="1520" fill="url(#gridPattern)"/>
+
+        <!-- =================== 1. 西北區 (機房設備、梯11、梯5、廁所、天井) =================== -->
+        <!-- 頂部機房設備 -->
+        <rect x="110" y="80" width="260" height="90" fill="url(#facilityGrad)" class="area-facility"/>
+        <text x="240" y="125" class="area-text">機房設備</text>
+
+        <!-- 梯11換鞋區出入口 -->
+        <rect x="120" y="170" width="150" height="50" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="195" y="190" class="area-text text-[10px]">梯11 換鞋區</text>
+        <text x="195" y="205" class="area-text text-[10px]">出入口</text>
+
+        <!-- 左上方天井 (垂直長條) -->
+        <rect x="215" y="220" width="60" height="255" class="area-shaft"/>
+        <text x="245" y="347" class="area-text text-cyan-400">天 井</text>
+
+        <!-- 梯5換鞋區出入口 -->
+        <rect x="220" y="475" width="60" height="85" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="250" y="508" class="area-text text-[10px]">梯5</text>
+        <text x="250" y="524" class="area-text text-[10px]">換鞋區</text>
+        <text x="250" y="540" class="area-text text-[10px]">出入口</text>
+
+        <!-- 梯5下方：機房設備 & 廁所 -->
+        <rect x="160" y="560" width="45" height="50" fill="url(#facilityGrad)" class="area-facility"/>
+        <text x="182" y="585" class="area-text text-[9px]">機房設備</text>
+
+        <rect x="140" y="615" width="65" height="40" fill="#172554" stroke="#1d4ed8" stroke-width="1"/>
+        <text x="172" y="635" class="area-text text-[11px] fill-blue-300">廁 所</text>
+
+        <!-- 西側外圍天井 -->
+        <rect x="60" y="615" width="80" height="45" class="area-shaft"/>
+        <text x="100" y="638" class="area-text text-[11px]">天井</text>
+
+        <!-- 西北長排車位 (846~850, 917~920) -->
+        <g id="west-north-slots">
+          <!-- 856 獨立格 -->
+          <g class="slot-group" data-id="856"><rect x="95" y="130" width="30" height="55" class="slot-normal"/><text x="110" y="157">856</text></g>
+          <!-- 縱向列左側 -->
+          <g class="slot-group" data-id="846"><rect x="120" y="220" width="28" height="45" class="slot-normal"/><text x="134" y="242">846</text></g>
+          <g class="slot-group" data-id="847"><rect x="120" y="265" width="28" height="45" class="slot-normal"/><text x="134" y="287">847</text></g>
+          <g class="slot-group" data-id="848"><rect x="120" y="310" width="28" height="45" class="slot-normal"/><text x="134" y="332">848</text></g>
+          <!-- 849 (標亮) -->
+          <g class="slot-group" data-id="849"><rect x="120" y="355" width="28" height="45" class="slot-normal"/><text x="134" y="377">849</text></g>
+          <g class="slot-group" data-id="850"><rect x="120" y="400" width="28" height="45" class="slot-normal"/><text x="134" y="422">850</text></g>
+          <g class="slot-group" data-id="917"><rect x="120" y="445" width="28" height="45" class="slot-normal"/><text x="134" y="467">917</text></g>
+          <g class="slot-group" data-id="918"><rect x="120" y="490" width="28" height="45" class="slot-normal"/><text x="134" y="512">918</text></g>
+          <g class="slot-group" data-id="919"><rect x="120" y="535" width="28" height="45" class="slot-normal"/><text x="134" y="557">919</text></g>
+          <g class="slot-group" data-id="920"><rect x="120" y="580" width="28" height="35" class="slot-normal"/><text x="134" y="597">920</text></g>
+        </g>
+
+        <!-- 天井右側直列 (638~618) -->
+        <g id="shaft-right-slots">
+          <g class="slot-group" data-id="638"><rect x="310" y="170" width="60" height="24" class="slot-normal"/><text x="340" y="182">638</text></g>
+          <g class="slot-group" data-id="637"><rect x="310" y="194" width="60" height="24" class="slot-normal"/><text x="340" y="206">637</text></g>
+          <g class="slot-group" data-id="636"><rect x="310" y="218" width="60" height="24" class="slot-normal"/><text x="340" y="230">636</text></g>
+          <g class="slot-group" data-id="635"><rect x="310" y="242" width="60" height="24" class="slot-normal"/><text x="340" y="254">635</text></g>
+          <g class="slot-group" data-id="634"><rect x="310" y="266" width="60" height="24" class="slot-normal"/><text x="340" y="278">634</text></g>
+          <g class="slot-group" data-id="633"><rect x="310" y="290" width="60" height="24" class="slot-normal"/><text x="340" y="302">633</text></g>
+          <!-- 柱子 J-18 -->
+          <rect x="275" y="218" width="20" height="24" class="pillar-box"/><text x="285" y="230" class="pillar-text">J18</text>
+          <rect x="275" y="314" width="20" height="24" class="pillar-box"/><text x="285" y="326" class="pillar-text">J17</text>
+
+          <g class="slot-group" data-id="632"><rect x="310" y="314" width="60" height="24" class="slot-normal"/><text x="340" y="326">632</text></g>
+          <!-- 631, 630 (標亮) -->
+          <g class="slot-group" data-id="631"><rect x="310" y="338" width="60" height="24" class="slot-normal"/><text x="340" y="350">631</text></g>
+          <g class="slot-group" data-id="630"><rect x="310" y="362" width="60" height="24" class="slot-normal"/><text x="340" y="374">630</text></g>
+          <g class="slot-group" data-id="629"><rect x="310" y="386" width="60" height="24" class="slot-normal"/><text x="340" y="398">629</text></g>
+          <g class="slot-group" data-id="628"><rect x="310" y="410" width="60" height="24" class="slot-normal"/><text x="340" y="422">628</text></g>
+          <!-- 627 (標亮) -->
+          <g class="slot-group" data-id="627"><rect x="310" y="434" width="60" height="24" class="slot-normal"/><text x="340" y="446">627</text></g>
+          
+          <rect x="275" y="434" width="20" height="24" class="pillar-box"/><text x="285" y="446" class="pillar-text">J16</text>
+
+          <g class="slot-group" data-id="626"><rect x="310" y="458" width="60" height="24" class="slot-normal"/><text x="340" y="470">626</text></g>
+          <g class="slot-group" data-id="625"><rect x="310" y="482" width="60" height="24" class="slot-normal"/><text x="340" y="494">625</text></g>
+          <g class="slot-group" data-id="624"><rect x="310" y="506" width="60" height="24" class="slot-normal"/><text x="340" y="518">624</text></g>
+          <g class="slot-group" data-id="623"><rect x="310" y="530" width="60" height="24" class="slot-normal"/><text x="340" y="542">623</text></g>
+          <g class="slot-group" data-id="622"><rect x="310" y="554" width="60" height="24" class="slot-normal"/><text x="340" y="566">622</text></g>
+          <g class="slot-group" data-id="621"><rect x="310" y="578" width="60" height="24" class="slot-normal"/><text x="340" y="590">621</text></g>
+          <!-- 620 (標亮) -->
+          <g class="slot-group" data-id="620"><rect x="310" y="602" width="60" height="24" class="slot-normal"/><text x="340" y="614">620</text></g>
+          <g class="slot-group" data-id="619"><rect x="310" y="626" width="60" height="20" class="slot-normal"/><text x="340" y="636">619</text></g>
+          <g class="slot-group" data-id="618"><rect x="310" y="646" width="60" height="20" class="slot-normal"/><text x="340" y="656">618</text></g>
+        </g>
+
+        <!-- =================== 2. 北側中央天井與頂部車位群 =================== -->
+        <!-- 北中央天井橫向 -->
+        <rect x="440" y="90" width="180" height="55" class="area-shaft"/>
+        <text x="530" y="118" class="area-text">天 井</text>
+
+        <!-- 855格 -->
+        <g class="slot-group" data-id="855"><rect x="420" y="90" width="20" height="55" class="slot-normal"/><text x="430" y="117">855</text></g>
+
+        <!-- 頂部橫排車位 (711~715, 706~708, 703~705) -->
+        <g id="north-top-slots">
+          <!-- 711 橫格 -->
+          <g class="slot-group" data-id="711"><rect x="530" y="145" width="60" height="22" class="slot-normal"/><text x="560" y="156">711</text></g>
+          <!-- 712 (標亮), 713, 714, 715 直格 -->
+          <g class="slot-group" data-id="712"><rect x="615" y="90" width="24" height="77" class="slot-normal"/><text x="627" y="128">712</text></g>
+          <g class="slot-group" data-id="713"><rect x="639" y="90" width="24" height="77" class="slot-normal"/><text x="651" y="128">713</text></g>
+          <g class="slot-group" data-id="714"><rect x="683" y="90" width="24" height="77" class="slot-normal"/><text x="695" y="128">714</text></g>
+          <g class="slot-group" data-id="715"><rect x="707" y="90" width="24" height="77" class="slot-normal"/><text x="719" y="128">715</text></g>
+
+          <!-- 703, 704, 705 橫格 -->
+          <g class="slot-group" data-id="705"><rect x="745" y="90" width="65" height="20" class="slot-normal"/><text x="777" y="100">705</text></g>
+          <g class="slot-group" data-id="704"><rect x="745" y="110" width="65" height="20" class="slot-normal"/><text x="777" y="120">704</text></g>
+          <g class="slot-group" data-id="703"><rect x="745" y="130" width="65" height="20" class="slot-normal"/><text x="777" y="140">703</text></g>
+
+          <!-- 柱子標記 -->
+          <rect x="595" y="90" width="20" height="20" class="pillar-box"/><text x="605" y="100" class="pillar-text">M20</text>
+          <rect x="663" y="90" width="20" height="20" class="pillar-box"/><text x="673" y="100" class="pillar-text">N20</text>
+          <rect x="731" y="90" width="14" height="20" class="pillar-box"/>
+          <rect x="770" y="90" width="20" height="15" class="pillar-box"/>
+        </g>
+
+        <!-- =================== 3. 東北區 (梯廳、橫車位、機房、走道列、梯8換鞋區) =================== -->
+        <!-- 梯廳 -->
+        <rect x="850" y="165" width="85" height="50" fill="#1e293b" stroke="#38bdf8" stroke-width="1.2"/>
+        <text x="892" y="190" class="area-text text-cyan-300">梯 廳</text>
+
+        <!-- 梯廳上方車位 676~678 -->
+        <g class="slot-group" data-id="676"><rect x="860" y="90" width="65" height="20" class="slot-normal"/><text x="892" y="100">676</text></g>
+        <g class="slot-group" data-id="677"><rect x="860" y="110" width="65" height="20" class="slot-normal"/><text x="892" y="120">677</text></g>
+        <g class="slot-group" data-id="678"><rect x="860" y="130" width="65" height="20" class="slot-normal"/><text x="892" y="140">678</text></g>
+
+        <!-- 梯廳下方車位 679~681 -->
+        <g class="slot-group" data-id="679"><rect x="840" y="225" width="65" height="22" class="slot-normal"/><text x="872" y="236">679</text></g>
+        <g class="slot-group" data-id="680"><rect x="840" y="247" width="65" height="22" class="slot-normal"/><text x="872" y="258">680</text></g>
+        <g class="slot-group" data-id="681"><rect x="840" y="269" width="65" height="22" class="slot-normal"/><text x="872" y="280">681</text></g>
+
+        <!-- 深灰色長方形 機房 -->
+        <rect x="830" y="300" width="85" height="95" fill="url(#facilityGrad)" class="area-facility"/>
+        <text x="872" y="347" class="area-text">機 房</text>
+
+        <!-- 走道直列車位 (640, 682~684, 852, 843, 841) -->
+        <g class="slot-group" data-id="640"><rect x="830" y="170" width="20" height="45" class="slot-normal"/><text x="840" y="192">640</text></g>
+        <g class="slot-group" data-id="682"><rect x="835" y="405" width="60" height="22" class="slot-normal"/><text x="865" y="416">682</text></g>
+        <g class="slot-group" data-id="683"><rect x="835" y="427" width="60" height="22" class="slot-normal"/><text x="865" y="438">683</text></g>
+        <g class="slot-group" data-id="684"><rect x="835" y="449" width="60" height="22" class="slot-normal"/><text x="865" y="460">684</text></g>
+        <g class="slot-group" data-id="852"><rect x="825" y="495" width="25" height="60" class="slot-normal"/><text x="837" y="525">852</text></g>
+
+        <!-- 梯8 換鞋區出入口 -->
+        <rect x="845" y="480" width="80" height="60" fill="#1e293b" stroke="#334155" stroke-width="1.2"/>
+        <text x="885" y="505" class="area-text text-[10px]">梯8</text>
+        <text x="885" y="520" class="area-text text-[10px]">換鞋區出入口</text>
+
+        <g class="slot-group" data-id="841"><rect x="825" y="590" width="25" height="60" class="slot-normal"/><text x="837" y="620">841</text></g>
+
+        <!-- =================== 4. 中央車位島 (K、M、N 軸列 & 橫向貫穿車道) =================== -->
+        <!-- 橫向貫穿車道：往 B1F 車道 -->
+        <rect x="420" y="405" width="180" height="40" fill="#172554" stroke="#3b82f6" stroke-width="1.5" rx="4"/>
+        <text x="510" y="425" class="fill-cyan-300 font-bold text-xs tracking-wider" text-anchor="middle" dominant-baseline="central">
+          ➔ 往 B1F 車道
+        </text>
+
+        <!-- K 軸列 (786~773 等) -->
+        <g id="k-slots">
+          <!-- 上半段 -->
+          <g class="slot-group" data-id="786"><rect x="400" y="210" width="55" height="22" class="slot-normal"/><text x="427" y="221">786</text></g>
+          <g class="slot-group" data-id="785"><rect x="400" y="232" width="55" height="22" class="slot-normal"/><text x="427" y="243">785</text></g>
+          <g class="slot-group" data-id="784"><rect x="400" y="254" width="55" height="22" class="slot-normal"/><text x="427" y="265">784</text></g>
+          <rect x="415" y="190" width="25" height="20" class="pillar-box"/><text x="427" y="200" class="pillar-text">K18</text>
+
+          <g class="slot-group" data-id="783"><rect x="400" y="290" width="55" height="22" class="slot-normal"/><text x="427" y="301">783</text></g>
+          <g class="slot-group" data-id="782"><rect x="400" y="312" width="55" height="22" class="slot-normal"/><text x="427" y="323">782</text></g>
+          <g class="slot-group" data-id="781"><rect x="400" y="334" width="55" height="22" class="slot-normal"/><text x="427" y="345">781</text></g>
+          <rect x="415" y="276" width="25" height="14" class="pillar-box"/><text x="427" y="283" class="pillar-text">K17</text>
+
+          <g class="slot-group" data-id="780"><rect x="400" y="370" width="55" height="18" class="slot-normal"/><text x="427" y="379">780</text></g>
+          <g class="slot-group" data-id="779"><rect x="400" y="388" width="55" height="17" class="slot-normal"/><text x="427" y="396">779</text></g>
+          <rect x="415" y="356" width="25" height="14" class="pillar-box"/>
+
+          <!-- 下半段 -->
+          <g class="slot-group" data-id="777"><rect x="400" y="460" width="55" height="22" class="slot-normal"/><text x="427" y="471">777</text></g>
+          <g class="slot-group" data-id="776"><rect x="400" y="482" width="55" height="22" class="slot-normal"/><text x="427" y="493">776</text></g>
+          <rect x="415" y="446" width="25" height="14" class="pillar-box"/><text x="427" y="453" class="pillar-text">K15</text>
+
+          <g class="slot-group" data-id="775"><rect x="400" y="520" width="55" height="22" class="slot-normal"/><text x="427" y="531">775</text></g>
+          <g class="slot-group" data-id="774"><rect x="400" y="542" width="55" height="22" class="slot-normal"/><text x="427" y="553">774</text></g>
+          <!-- 773 (標亮) -->
+          <g class="slot-group" data-id="773"><rect x="400" y="564" width="55" height="22" class="slot-normal"/><text x="427" y="575">773</text></g>
+          <rect x="415" y="504" width="25" height="16" class="pillar-box"/><text x="427" y="512" class="pillar-text">K13</text>
+        </g>
+
+        <!-- M 軸列 (756~741 等) -->
+        <g id="m-slots">
+          <!-- 頂部 854 -->
+          <g class="slot-group" data-id="854"><rect x="515" y="195" width="70" height="20" class="slot-normal"/><text x="550" y="205">854</text></g>
+          
+          <g class="slot-group" data-id="756"><rect x="490" y="215" width="55" height="22" class="slot-normal"/><text x="517" y="226">756</text></g>
+          <g class="slot-group" data-id="755"><rect x="490" y="237" width="55" height="22" class="slot-normal"/><text x="517" y="248">755</text></g>
+          <!-- 754 (標亮) -->
+          <g class="slot-group" data-id="754"><rect x="490" y="259" width="55" height="22" class="slot-normal"/><text x="517" y="270">754</text></g>
+          <g class="slot-group" data-id="753"><rect x="490" y="281" width="55" height="22" class="slot-normal"/><text x="517" y="292">753</text></g>
+
+          <g class="slot-group" data-id="752"><rect x="490" y="320" width="55" height="22" class="slot-normal"/><text x="517" y="331">752</text></g>
+          <g class="slot-group" data-id="751"><rect x="490" y="342" width="55" height="22" class="slot-normal"/><text x="517" y="353">751</text></g>
+          <g class="slot-group" data-id="750"><rect x="490" y="364" width="55" height="22" class="slot-normal"/><text x="517" y="375">750</text></g>
+          
+          <rect x="580" y="195" width="24" height="20" class="pillar-box"/><text x="592" y="205" class="pillar-text">M18</text>
+          <rect x="580" y="303" width="24" height="17" class="pillar-box"/><text x="592" y="311" class="pillar-text">M17</text>
+          <rect x="580" y="386" width="24" height="18" class="pillar-box"/><text x="592" y="395" class="pillar-text">M16</text>
+
+          <!-- 下半段 746~741 -->
+          <g class="slot-group" data-id="746"><rect x="490" y="460" width="55" height="22" class="slot-normal"/><text x="517" y="471">746</text></g>
+          <g class="slot-group" data-id="745"><rect x="490" y="482" width="55" height="22" class="slot-normal"/><text x="517" y="493">745</text></g>
+          <g class="slot-group" data-id="744"><rect x="490" y="504" width="55" height="22" class="slot-normal"/><text x="517" y="515">744</text></g>
+          <g class="slot-group" data-id="743"><rect x="490" y="526" width="55" height="22" class="slot-normal"/><text x="517" y="537">743</text></g>
+          <g class="slot-group" data-id="742"><rect x="490" y="548" width="55" height="22" class="slot-normal"/><text x="517" y="559">742</text></g>
+          <g class="slot-group" data-id="741"><rect x="490" y="570" width="55" height="22" class="slot-normal"/><text x="517" y="581">741</text></g>
+          
+          <rect x="575" y="445" width="24" height="18" class="pillar-box"/><text x="587" y="454" class="pillar-text">M14</text>
+          <rect x="575" y="526" width="24" height="18" class="pillar-box"/><text x="587" y="535" class="pillar-text">M13</text>
+        </g>
+
+        <!-- N 軸列 (717~734 等) -->
+        <g id="n-slots">
+          <!-- 頂部 853 -->
+          <g class="slot-group" data-id="853"><rect x="675" y="195" width="70" height="20" class="slot-normal"/><text x="710" y="205">853</text></g>
+          
+          <!-- 717 (標亮) -->
+          <g class="slot-group" data-id="717"><rect x="650" y="215" width="55" height="22" class="slot-normal"/><text x="677" y="226">717</text></g>
+          <g class="slot-group" data-id="718"><rect x="650" y="237" width="55" height="22" class="slot-normal"/><text x="677" y="248">718</text></g>
+          <g class="slot-group" data-id="719"><rect x="650" y="259" width="55" height="22" class="slot-normal"/><text x="677" y="270">719</text></g>
+          <g class="slot-group" data-id="720"><rect x="650" y="281" width="55" height="22" class="slot-normal"/><text x="677" y="292">720</text></g>
+
+          <g class="slot-group" data-id="721"><rect x="650" y="320" width="55" height="22" class="slot-normal"/><text x="677" y="331">721</text></g>
+          <g class="slot-group" data-id="722"><rect x="650" y="342" width="55" height="22" class="slot-normal"/><text x="677" y="353">722</text></g>
+          <g class="slot-group" data-id="723"><rect x="650" y="364" width="55" height="22" class="slot-normal"/><text x="677" y="375">723</text></g>
+
+          <!-- 柱子標記 -->
+          <rect x="655" y="195" width="20" height="20" class="pillar-box"/><text x="665" y="205" class="pillar-text">N18</text>
+          <rect x="745" y="195" width="20" height="20" class="pillar-box"/><text x="755" y="205" class="pillar-text">P19</text>
+          <rect x="650" y="303" width="20" height="17" class="pillar-box"/><text x="660" y="311" class="pillar-text">N17</text>
+          <rect x="740" y="303" width="20" height="17" class="pillar-box"/>
+          <rect x="650" y="386" width="20" height="18" class="pillar-box"/><text x="660" y="395" class="pillar-text">N16</text>
+
+          <g class="slot-group" data-id="726"><rect x="650" y="420" width="55" height="22" class="slot-normal"/><text x="677" y="431">726</text></g>
+          <g class="slot-group" data-id="727"><rect x="650" y="442" width="55" height="22" class="slot-normal"/><text x="677" y="453">727</text></g>
+          <g class="slot-group" data-id="728"><rect x="650" y="464" width="55" height="22" class="slot-normal"/><text x="677" y="475">728</text></g>
+          <g class="slot-group" data-id="729"><rect x="650" y="486" width="55" height="22" class="slot-normal"/><text x="677" y="497">729</text></g>
+          <g class="slot-group" data-id="730"><rect x="650" y="508" width="55" height="22" class="slot-normal"/><text x="677" y="519">730</text></g>
+          <g class="slot-group" data-id="731"><rect x="650" y="530" width="55" height="22" class="slot-normal"/><text x="677" y="541">731</text></g>
+          <g class="slot-group" data-id="732"><rect x="650" y="552" width="55" height="22" class="slot-normal"/><text x="677" y="563">732</text></g>
+          <g class="slot-group" data-id="733"><rect x="650" y="574" width="55" height="22" class="slot-normal"/><text x="677" y="585">733</text></g>
+          <g class="slot-group" data-id="734"><rect x="650" y="596" width="55" height="22" class="slot-normal"/><text x="677" y="607">734</text></g>
+        </g>
+
+        <!-- =================== 5. 中段水平走廊與天井分隔區 =================== -->
+        <!-- 中央走廊橫向天井 -->
+        <rect x="400" y="675" width="240" height="40" class="area-shaft"/>
+        <text x="520" y="695" class="area-text text-xs">天 井</text>
+
+        <!-- 天井外圍與走道車位 -->
+        <g id="middle-walkway-slots">
+          <g class="slot-group" data-id="607"><rect x="90" y="685" width="22" height="45" class="slot-normal"/><text x="101" y="707">607</text></g>
+          <g class="slot-group" data-id="608"><rect x="112" y="685" width="22" height="45" class="slot-normal"/><text x="123" y="707">608</text></g>
+          <g class="slot-group" data-id="609"><rect x="134" y="685" width="22" height="45" class="slot-normal"/><text x="145" y="707">609</text></g>
+          <g class="slot-group" data-id="610"><rect x="175" y="685" width="22" height="45" class="slot-normal"/><text x="186" y="707">610</text></g>
+          <g class="slot-group" data-id="611"><rect x="197" y="685" width="22" height="45" class="slot-normal"/><text x="208" y="707">611</text></g>
+          <g class="slot-group" data-id="612"><rect x="219" y="685" width="22" height="45" class="slot-normal"/><text x="230" y="707">612</text></g>
+          <g class="slot-group" data-id="613"><rect x="241" y="685" width="22" height="45" class="slot-normal"/><text x="252" y="707">613</text></g>
+
+          <g class="slot-group" data-id="772"><rect x="415" y="650" width="55" height="22" class="slot-normal"/><text x="442" y="661">772</text></g>
+          <g class="slot-group" data-id="771"><rect x="500" y="650" width="55" height="22" class="slot-normal"/><text x="527" y="661">771</text></g>
+          <g class="slot-group" data-id="740"><rect x="560" y="650" width="55" height="22" class="slot-normal"/><text x="587" y="661">740</text></g>
+
+          <g class="slot-group" data-id="735"><rect x="655" y="650" width="20" height="55" class="slot-normal"/><text x="665" y="677">735</text></g>
+          <g class="slot-group" data-id="736"><rect x="675" y="650" width="20" height="55" class="slot-normal"/><text x="685" y="677">736</text></g>
+          <g class="slot-group" data-id="737"><rect x="695" y="650" width="20" height="55" class="slot-normal"/><text x="705" y="677">737</text></g>
+        </g>
+
+        <!-- =================== 6. 南半部 (西南排、300/400 矩陣、梯1換鞋區、機房) =================== -->
+        <!-- 西南雙排車位 (451~434 / 417~433 & 573, 575) -->
+        <g id="south-west-slots">
+          <!-- 頂部高亮車位：573 (F軸) & 575 (G軸) -->
+          <g class="slot-group" data-id="573"><rect x="30" y="760" width="55" height="22" class="slot-normal"/><text x="57" y="771">573</text></g>
+          <g class="slot-group" data-id="575"><rect x="90" y="760" width="55" height="22" class="slot-normal"/><text x="117" y="771">575</text></g>
+          
+          <rect x="45" y="740" width="25" height="18" class="pillar-box"/><text x="57" y="749" class="pillar-text">F20</text>
+          <rect x="105" y="740" width="25" height="18" class="pillar-box"/><text x="117" y="749" class="pillar-text">G20</text>
+
+          <g class="slot-group" data-id="451"><rect x="30" y="785" width="55" height="22" class="slot-normal"/><text x="57" y="796">451</text></g>
+          <g class="slot-group" data-id="450"><rect x="30" y="807" width="55" height="22" class="slot-normal"/><text x="57" y="818">450</text></g>
+          <g class="slot-group" data-id="449"><rect x="30" y="829" width="55" height="22" class="slot-normal"/><text x="57" y="840">449</text></g>
+          <g class="slot-group" data-id="448"><rect x="30" y="851" width="55" height="22" class="slot-normal"/><text x="57" y="862">448</text></g>
+          <g class="slot-group" data-id="447"><rect x="30" y="873" width="55" height="22" class="slot-normal"/><text x="57" y="884">447</text></g>
+
+          <g class="slot-group" data-id="417"><rect x="90" y="785" width="55" height="22" class="slot-normal"/><text x="117" y="796">417</text></g>
+          <g class="slot-group" data-id="418"><rect x="90" y="807" width="55" height="22" class="slot-normal"/><text x="117" y="818">418</text></g>
+          <g class="slot-group" data-id="419"><rect x="90" y="829" width="55" height="22" class="slot-normal"/><text x="117" y="840">419</text></g>
+          <g class="slot-group" data-id="420"><rect x="90" y="851" width="55" height="22" class="slot-normal"/><text x="117" y="862">420</text></g>
+          <g class="slot-group" data-id="421"><rect x="90" y="873" width="55" height="22" class="slot-normal"/><text x="117" y="884">421</text></g>
+
+          <!-- 延伸格位 -->
+          <g class="slot-group" data-id="446"><rect x="30" y="910" width="55" height="22" class="slot-normal"/><text x="57" y="921">446</text></g>
+          <g class="slot-group" data-id="445"><rect x="30" y="932" width="55" height="22" class="slot-normal"/><text x="57" y="943">445</text></g>
+          <g class="slot-group" data-id="444"><rect x="30" y="954" width="55" height="22" class="slot-normal"/><text x="57" y="965">444</text></g>
+
+          <g class="slot-group" data-id="422"><rect x="90" y="910" width="55" height="22" class="slot-normal"/><text x="117" y="921">422</text></g>
+          <g class="slot-group" data-id="423"><rect x="90" y="932" width="55" height="22" class="slot-normal"/><text x="117" y="943">423</text></g>
+          <g class="slot-group" data-id="424"><rect x="90" y="954" width="55" height="22" class="slot-normal"/><text x="117" y="965">424</text></g>
+        </g>
+
+        <!-- 南中央四直列 300 / 400 系列矩陣 -->
+        <g id="south-center-slots">
+          <!-- 第1列 (415~399) -->
+          <g class="slot-group" data-id="415"><rect x="225" y="760" width="55" height="22" class="slot-normal"/><text x="252" y="771">415</text></g>
+          <g class="slot-group" data-id="414"><rect x="225" y="782" width="55" height="22" class="slot-normal"/><text x="252" y="793">414</text></g>
+          <g class="slot-group" data-id="413"><rect x="225" y="804" width="55" height="22" class="slot-normal"/><text x="252" y="815">413</text></g>
+          <g class="slot-group" data-id="412"><rect x="225" y="826" width="55" height="22" class="slot-normal"/><text x="252" y="837">412</text></g>
+          <g class="slot-group" data-id="411"><rect x="225" y="848" width="55" height="22" class="slot-normal"/><text x="252" y="859">411</text></g>
+
+          <!-- 第2列 (383~398) -->
+          <g class="slot-group" data-id="383"><rect x="285" y="760" width="55" height="22" class="slot-normal"/><text x="312" y="771">383</text></g>
+          <g class="slot-group" data-id="384"><rect x="285" y="782" width="55" height="22" class="slot-normal"/><text x="312" y="793">384</text></g>
+          <g class="slot-group" data-id="385"><rect x="285" y="804" width="55" height="22" class="slot-normal"/><text x="312" y="815">385</text></g>
+          <g class="slot-group" data-id="386"><rect x="285" y="826" width="55" height="22" class="slot-normal"/><text x="312" y="837">386</text></g>
+          <g class="slot-group" data-id="387"><rect x="285" y="848" width="55" height="22" class="slot-normal"/><text x="312" y="859">387</text></g>
+
+          <!-- 第3列 (381~365) -->
+          <g class="slot-group" data-id="381"><rect x="375" y="760" width="55" height="22" class="slot-normal"/><text x="402" y="771">381</text></g>
+          <g class="slot-group" data-id="380"><rect x="375" y="782" width="55" height="22" class="slot-normal"/><text x="402" y="793">380</text></g>
+          <g class="slot-group" data-id="379"><rect x="375" y="804" width="55" height="22" class="slot-normal"/><text x="402" y="815">379</text></g>
+          <g class="slot-group" data-id="378"><rect x="375" y="826" width="55" height="22" class="slot-normal"/><text x="402" y="837">378</text></g>
+          <g class="slot-group" data-id="377"><rect x="375" y="848" width="55" height="22" class="slot-normal"/><text x="402" y="859">377</text></g>
+
+          <!-- 第4列 (343~329) -->
+          <g class="slot-group" data-id="343"><rect x="465" y="760" width="55" height="22" class="slot-normal"/><text x="492" y="771">343</text></g>
+          <g class="slot-group" data-id="342"><rect x="465" y="782" width="55" height="22" class="slot-normal"/><text x="492" y="793">342</text></g>
+          <g class="slot-group" data-id="341"><rect x="465" y="804" width="55" height="22" class="slot-normal"/><text x="492" y="815">341</text></g>
+          <g class="slot-group" data-id="340"><rect x="465" y="826" width="55" height="22" class="slot-normal"/><text x="492" y="837">340</text></g>
+          <g class="slot-group" data-id="339"><rect x="465" y="848" width="55" height="22" class="slot-normal"/><text x="492" y="859">339</text></g>
+
+          <!-- 結構柱標記 -->
+          <rect x="235" y="740" width="25" height="18" class="pillar-box"/><text x="247" y="749" class="pillar-text">J09</text>
+          <rect x="320" y="740" width="25" height="18" class="pillar-box"/><text x="332" y="749" class="pillar-text">J08</text>
+          <rect x="395" y="740" width="25" height="18" class="pillar-box"/><text x="407" y="749" class="pillar-text">K09</text>
+          <rect x="470" y="740" width="25" height="18" class="pillar-box"/><text x="482" y="749" class="pillar-text">K08</text>
+        </g>
+
+        <!-- 梯 1 換鞋區出入口 (大型區塊) -->
+        <rect x="635" y="760" width="155" height="110" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5" rx="6"/>
+        <text x="712" y="805" class="area-text font-bold text-sm text-cyan-300">梯 1</text>
+        <text x="712" y="825" class="area-text font-bold text-xs text-cyan-300">換鞋區出入口</text>
+
+        <!-- 梯1下方車位 317~325 -->
+        <g id="ladder1-below-slots">
+          <g class="slot-group" data-id="317"><rect x="635" y="890" width="55" height="20" class="slot-normal"/><text x="662" y="900">317</text></g>
+          <g class="slot-group" data-id="318"><rect x="635" y="910" width="55" height="20" class="slot-normal"/><text x="662" y="920">318</text></g>
+          <g class="slot-group" data-id="319"><rect x="635" y="930" width="55" height="20" class="slot-normal"/><text x="662" y="940">319</text></g>
+          <g class="slot-group" data-id="320"><rect x="635" y="960" width="55" height="20" class="slot-normal"/><text x="662" y="970">320</text></g>
+          <g class="slot-group" data-id="321"><rect x="635" y="980" width="55" height="20" class="slot-normal"/><text x="662" y="990">321</text></g>
+          <g class="slot-group" data-id="322"><rect x="635" y="1000" width="55" height="20" class="slot-normal"/><text x="662" y="1010">322</text></g>
+        </g>
+
+        <!-- 東南大型 機房設備 -->
+        <rect x="735" y="890" width="190" height="270" fill="url(#facilityGrad)" class="area-facility"/>
+        <text x="830" y="1025" class="area-text tracking-widest text-slate-400">機房設備</text>
+
+        <!-- =================== 7. 最底端車道與 792~799 橫向專用格 =================== -->
+        <!-- 底部往 B1F 車道 -->
+        <rect x="475" y="1215" width="130" height="40" fill="#172554" stroke="#3b82f6" stroke-width="1.5" rx="4"/>
+        <text x="540" y="1235" class="fill-cyan-300 font-bold text-xs" text-anchor="middle" dominant-baseline="central">往 B1F 車道</text>
+
+        <!-- 最底端橫排車位 (799~792) -->
+        <g id="bottom-slots">
+          <g class="slot-group" data-id="799"><rect x="75" y="1230" width="22" height="50" class="slot-normal"/><text x="86" y="1255">799</text></g>
+          <g class="slot-group" data-id="798"><rect x="97" y="1230" width="22" height="50" class="slot-normal"/><text x="108" y="1255">798</text></g>
+          <g class="slot-group" data-id="797"><rect x="140" y="1230" width="22" height="50" class="slot-normal"/><text x="151" y="1255">797</text></g>
+          <g class="slot-group" data-id="796"><rect x="162" y="1230" width="22" height="50" class="slot-normal"/><text x="173" y="1255">796</text></g>
+          <g class="slot-group" data-id="795"><rect x="184" y="1230" width="22" height="50" class="slot-normal"/><text x="195" y="1255">795</text></g>
+          
+          <g class="slot-group" data-id="794"><rect x="245" y="1230" width="22" height="50" class="slot-normal"/><text x="256" y="1255">794</text></g>
+          <g class="slot-group" data-id="793"><rect x="267" y="1230" width="22" height="50" class="slot-normal"/><text x="278" y="1255">793</text></g>
+          <!-- 792 (標亮) -->
+          <g class="slot-group" data-id="792"><rect x="289" y="1230" width="22" height="50" class="slot-normal"/><text x="300" y="1255">792</text></g>
+
+          <!-- J-02 柱子 -->
+          <rect x="309" y="1215" width="20" height="20" class="pillar-box"/><text x="319" y="1225" class="pillar-text">J02</text>
+        </g>
+      </svg>
+    </div>
+
+    <!-- 浮動地圖控制器 (懸浮右側) -->
+    <div class="absolute right-4 top-4 flex flex-col space-y-2 z-20">
+      <button onclick="zoomBy(1.25)" class="w-10 h-10 rounded-xl glass-panel text-cyan-300 font-bold text-lg flex items-center justify-center hover:bg-cyan-500/20 active:scale-95 shadow-lg border border-cyan-500/30">
+        +
+      </button>
+      <button onclick="resetZoom()" class="w-10 h-10 rounded-xl glass-panel text-slate-300 text-xs font-mono flex items-center justify-center hover:bg-white/10 active:scale-95 shadow-lg border border-white/10">
+        1x
+      </button>
+      <button onclick="zoomBy(0.8)" class="w-10 h-10 rounded-xl glass-panel text-cyan-300 font-bold text-lg flex items-center justify-center hover:bg-cyan-500/20 active:scale-95 shadow-lg border border-cyan-500/30">
+        -
+      </button>
+      <button onclick="fitView()" class="w-10 h-10 rounded-xl glass-panel text-emerald-400 text-xs flex items-center justify-center hover:bg-emerald-500/20 active:scale-95 shadow-lg border border-emerald-500/30" title="適應螢幕">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+        </svg>
+      </button>
+    </div>
+  </main>
+
+  <!-- 底部即時狀態列與巡覽工具 -->
+  <footer class="glass-panel px-4 py-2 flex items-center justify-between z-30 border-t border-cyan-500/20">
+    <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-1.5">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="text-xs text-slate-300">綠色 = 可預約空位</span>
+      </div>
+    </div>
+    <div class="flex items-center space-x-2">
+      <button onclick="cycleNextSlot()" class="px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-cyan-400 text-xs border border-cyan-500/30 font-medium active:scale-95 transition-all">
+        快速巡覽 ➔
+      </button>
+    </div>
+  </footer>
+
+  <!-- =================== 彈出視窗 1：字串輸入 Modal =================== -->
+  <div id="inputModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-panel w-full max-w-md rounded-2xl p-5 border border-cyan-500/40 shadow-2xl transform scale-95 transition-transform duration-200" id="modalBox">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-700/60">
+        <div class="flex items-center space-x-2">
+          <div class="w-2 h-4 bg-cyan-400 rounded-sm"></div>
+          <h3 class="text-base font-bold text-white tracking-wide">貼上車位字串</h3>
+        </div>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1 text-lg leading-none">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-400 my-3">
+        直接貼上系統分配字串，將自動過濾並僅高亮呈現屬於 <span class="text-emerald-400 font-bold">LP7-B2F</span> 的空車位：
+      </p>
+
+      <textarea id="rawStringInput" rows="7" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-xs font-mono text-cyan-300 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 leading-relaxed resize-none"></textarea>
+
+      <div class="mt-4 flex space-x-3">
+        <button onclick="closeModal()" class="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all">
+          取消
+        </button>
+        <button onclick="handleParseAndApply()" class="flex-1 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 font-bold text-xs shadow-lg shadow-cyan-900/50 hover:opacity-95 active:scale-95 transition-all">
+          解析並更新地圖
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =================== 彈出視窗 2：預約確認 Dialog =================== -->
+  <div id="bookingModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden opacity-0 transition-opacity duration-200">
+    <div class="glass-panel w-full max-w-sm rounded-2xl p-6 border border-emerald-500/50 shadow-2xl text-center transform scale-95 transition-transform duration-200" id="bookingBox">
+      <div class="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-400/40 mx-auto flex items-center justify-center mb-3">
+        <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+        </svg>
+      </div>
+
+      <h3 class="text-lg font-bold text-white mb-1">是否預約此車位？</h3>
+      <p class="text-xs text-slate-400 mb-4">確認後將自動複製預約代碼至剪貼簿</p>
+
+      <div class="bg-slate-900/80 rounded-xl p-3 border border-slate-800 text-left mb-5 space-y-1.5 text-xs font-mono">
+        <div class="flex justify-between">
+          <span class="text-slate-500">樓層車位：</span>
+          <span class="text-emerald-400 font-bold" id="bookSlotName">LP7-B2F-678</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">分配部門：</span>
+          <span class="text-slate-300" id="bookSlotDep">--</span>
+        </div>
+        <div class="flex justify-between">
+          <span class="text-slate-500">柱位坐標：</span>
+          <span class="text-slate-300" id="bookSlotCoord">--</span>
+        </div>
+        <div class="flex justify-between pt-1 border-t border-slate-800">
+          <span class="text-slate-500">複製格式：</span>
+          <span class="text-cyan-400 font-bold" id="bookCopyFormat">678-QQ</span>
+        </div>
+      </div>
+
+      <div class="flex space-x-3">
+        <button onclick="closeBookingModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium">
+          取消
+        </button>
+        <button onclick="confirmBooking()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-900/50 hover:opacity-95 active:scale-95 transition-all">
+          是，立即預約
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 預設字串
+    const defaultDataString = `9/25 Day 
+Pos:LP7-B2F-573
+  (Dep:LPRDA1)
+  (F-20__F-19)
+Pos:LP7-B2F-575
+  (Dep:LPRD13)
+  (G-20__G-19)
+Pos:LP7-B2F-620
+  (Dep:LPRD31)
+  (J-13__J-12)
+Pos:LP7-B2F-627
+  (Dep:LPRD51)
+  (J-16__J-15)
+Pos:LP7-B2F-630
+  (Dep:LPRD71)
+  (J-17__J-16)
+Pos:LP7-B2F-631
+  (Dep:LPRD81)
+  (J-17__J-16)
+Pos:LP7-B2F-717
+  (Dep:LPRD31)
+  (N-18__N-17)
+Pos:LP7-B2F-754
+  (Dep:LPRD51)
+  (M-18__M-17)
+Pos:LP7-B2F-773
+  (Dep:LPRD62)
+  (K-13__K-12)
+Pos:LP7-B2F-849
+  (Dep:LPRD61)
+  (H-17__H-16)
+Pos:LP7-1F-886
+  (Dep:LPRDB1)
+  (J-10__J-11)
+Pos:LP7-B2F-712
+  (Dep:LPRD13)
+  (M-19__N-19)
+Pos:LP5-B1F-117
+  (Dep:LPRDB5)
+  (G-05__G-04)
+Pos:LP5-B1F-137
+  (Dep:LPRDC1)
+  (F-09__F-09)
+Pos:LP5-B1F-162
+  (Dep:LPRD47)
+  (E-05__E-04)
+Pos:LP5-B1F-208
+  (Dep:LPRD46)
+  (C-04__C-03)
+Pos:LP5-B1F-019
+  (Dep:LPRDC2)
+  (L-06__L-05)
+Pos:LP7-B2F-792
+  (Dep:LPRD51)
+  (J-02)
+Pos:LP7-1F-873
+  (Dep:LPRD41)
+  (K-11__K-09)`;
+
+    // 系統狀態
+    let availableSlotsMap = new Map();
+    let currentPendingSlot = null;
+    let cycleIndex = 0;
+
+    // 平移縮放狀態
+    let scale = 0.55;
+    let pointX = 20;
+    let pointY = 20;
+    let startX = 0;
+    let startY = 0;
+    let isPanning = false;
+
+    // DOM 元素
+    const container = document.getElementById('viewportContainer');
+    const wrapper = document.getElementById('mapWrapper');
+    const rawInput = document.getElementById('rawStringInput');
+    const inputModal = document.getElementById('inputModal');
+    const modalBox = document.getElementById('modalBox');
+    const bookingModal = document.getElementById('bookingModal');
+    const bookingBox = document.getElementById('bookingBox');
+
+    // 解析字串核心
+    function parseParkingString(str) {
+      const b2fMap = new Map();
+      const lines = str.split('\n');
+      let currentPos = null;
+      let currentDep = '';
+      let currentCoord = '';
+
+      for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith('Pos:')) {
+          if (currentPos && currentPos.startsWith('LP7-B2F-')) {
+            const num = currentPos.replace('LP7-B2F-', '').trim();
+            b2fMap.set(num, { id: num, fullPos: currentPos, dep: currentDep, coord: currentCoord });
+          }
+          currentPos = line.replace('Pos:', '').trim();
+          currentDep = '';
+          currentCoord = '';
+        } else if (line.startsWith('(Dep:')) {
+          currentDep = line.replace('(Dep:', '').replace(')', '').trim();
+        } else if (line.startsWith('(') && line.endsWith(')')) {
+          currentCoord = line.replace(/^\(/, '').replace(/\)$/, '').trim();
+        }
+      }
+      if (currentPos && currentPos.startsWith('LP7-B2F-')) {
+        const num = currentPos.replace('LP7-B2F-', '').trim();
+        b2fMap.set(num, { id: num, fullPos: currentPos, dep: currentDep, coord: currentCoord });
+      }
+      return b2fMap;
+    }
+
+    // 渲染亮起
+    function applyHighlightedSlots() {
+      // 重置所有車位
+      document.querySelectorAll('.slot-group').forEach(el => {
+        el.classList.remove('slot-available');
+        el.onclick = null;
+      });
+
+      // 為有效車位綁定事件與高亮
+      let matchedCount = 0;
+      availableSlotsMap.forEach((info, id) => {
+        const target = document.querySelector(`.slot-group[data-id="${id}"]`);
+        if (target) {
+          target.classList.add('slot-available');
+          target.onclick = (e) => {
+            e.stopPropagation();
+            openBookingDialog(info);
+          };
+          matchedCount++;
+        }
+      });
+
+      document.getElementById('availCountBadge').textContent = `${matchedCount} 空位`;
+    }
+
+    // 更新地圖
+    function handleParseAndApply() {
+      const text = rawInput.value.trim();
+      if (!text) return;
+      availableSlotsMap = parseParkingString(text);
+      applyHighlightedSlots();
+      closeModal();
+      showToast('已更新車位狀態');
+    }
+
+    // 預約彈窗
+    function openBookingDialog(info) {
+      currentPendingSlot = info;
+      document.getElementById('bookSlotName').textContent = `LP7-B2F-${info.id}`;
+      document.getElementById('bookSlotDep').textContent = info.dep || '未指定';
+      document.getElementById('bookSlotCoord').textContent = info.coord || '未指定';
+      document.getElementById('bookCopyFormat').textContent = `${info.id}-QQ`;
+
+      bookingModal.classList.remove('hidden');
+      setTimeout(() => {
+        bookingModal.classList.remove('opacity-0');
+        bookingBox.classList.remove('scale-95');
+      }, 10);
+    }
+
+    function closeBookingModal() {
+      bookingModal.classList.add('opacity-0');
+      bookingBox.classList.add('scale-95');
+      setTimeout(() => {
+        bookingModal.classList.add('hidden');
+        currentPendingSlot = null;
+      }, 200);
+    }
+
+    // 點擊「是」：複製到剪貼簿並彈出 Toast
+    function confirmBooking() {
+      if (!currentPendingSlot) return;
+      const copyText = `${currentPendingSlot.id}-QQ`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(copyText).then(() => {
+          triggerSuccessFeedback();
+        }).catch(() => {
+          fallbackCopyText(copyText);
+        });
+      } else {
+        fallbackCopyText(copyText);
+      }
+    }
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.opacity = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        triggerSuccessFeedback();
+      } catch (err) {
+        alert("複製失敗，請手動複製: " + text);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    function triggerSuccessFeedback() {
+      closeBookingModal();
+      showToast('已複製到剪貼簿，請至LINE進行貼上');
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      toastMsg.textContent = msg;
+      toast.classList.remove('opacity-0', '-translate-y-6');
+      setTimeout(() => {
+        toast.classList.add('opacity-0', '-translate-y-6');
+      }, 2600);
+    }
+
+    // 視圖變換與縮放
+    function updateTransform() {
+      wrapper.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
+
+    function zoomBy(factor) {
+      const oldScale = scale;
+      scale = Math.min(Math.max(0.3, scale * factor), 2.5);
+      // 以中心點縮放
+      const cx = container.clientWidth / 2;
+      const cy = container.clientHeight / 2;
+      pointX = cx - (cx - pointX) * (scale / oldScale);
+      pointY = cy - (cy - pointY) * (scale / oldScale);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      scale = 1.0;
+      pointX = 20;
+      pointY = 20;
+      updateTransform();
+    }
+
+    function fitView() {
+      const containerW = container.clientWidth;
+      const containerH = container.clientHeight;
+      const mapW = 1020;
+      const mapH = 1520;
+      scale = Math.min(containerW / mapW, containerH / mapH) * 0.95;
+      pointX = (containerW - mapW * scale) / 2;
+      pointY = (containerH - mapH * scale) / 2;
+      updateTransform();
+    }
+
+    // 循序跳轉至下一個空車位
+    function cycleNextSlot() {
+      const keys = Array.from(availableSlotsMap.keys());
+      if (keys.length === 0) return;
+      const slotId = keys[cycleIndex % keys.length];
+      cycleIndex++;
+
+      const target = document.querySelector(`.slot-group[data-id="${slotId}"]`);
+      if (target) {
+        const bbox = target.getBBox();
+        scale = 1.2;
+        pointX = container.clientWidth / 2 - (bbox.x + bbox.width / 2) * scale;
+        pointY = container.clientHeight / 2 - (bbox.y + bbox.height / 2) * scale;
+        updateTransform();
+      }
+    }
+
+    // 拖曳平移事件 (滑鼠與觸控)
+    container.addEventListener('mousedown', (e) => {
+      isPanning = true;
+      startX = e.clientX - pointX;
+      startY = e.clientY - pointY;
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      pointX = e.clientX - startX;
+      pointY = e.clientY - startY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => { isPanning = false; });
+
+    // 觸控手勢支援 (單指拖曳 & 雙指縮放)
+    let initialTouchDist = 0;
+    let initialScale = 1;
+
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        isPanning = true;
+        startX = e.touches[0].clientX - pointX;
+        startY = e.touches[0].clientY - pointY;
+      } else if (e.touches.length === 2) {
+        isPanning = false;
+        initialTouchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = scale;
+      }
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 1 && isPanning) {
+        pointX = e.touches[0].clientX - startX;
+        pointY = e.touches[0].clientY - startY;
+        updateTransform();
+      } else if (e.touches.length === 2) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        if (initialTouchDist > 0) {
+          const factor = currentDist / initialTouchDist;
+          scale = Math.min(Math.max(0.3, initialScale * factor), 2.5);
+          updateTransform();
+        }
+      }
+    }, { passive: true });
+
+    container.addEventListener('touchend', () => { isPanning = false; });
+
+    // 字串輸入 Modal 控制
+    function openModal() {
+      inputModal.classList.remove('hidden');
+      setTimeout(() => {
+        inputModal.classList.remove('opacity-0');
+        modalBox.classList.remove('scale-95');
+      }, 10);
+    }
+
+    function closeModal() {
+      inputModal.classList.add('opacity-0');
+      modalBox.classList.add('scale-95');
+      setTimeout(() => {
+        inputModal.classList.add('hidden');
+      }, 200);
+    }
+
+    // 初始化載入
+    window.addEventListener('DOMContentLoaded', () => {
+      rawInput.value = defaultDataString;
+      availableSlotsMap = parseParkingString(defaultDataString);
+      applyHighlightedSlots();
+      fitView();
+    });
+  </script>
+</body>
+</html>
